@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # ReUse
 
 Projeto de Sprint 1 para a plataforma ReUse.
