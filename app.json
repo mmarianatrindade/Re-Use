@@ -1,0 +1,26 @@
+{
+  "expo": {
+    "name": "ReUse",
+    "slug": "reuse-app",
+    "version": "1.0.0",
+    "platforms": ["ios", "android", "web"],
+    "orientation": "portrait",
+    "splash": {
+      "backgroundColor": "#F2FFF1"
+    },
+    "updates": {
+      "fallbackToCacheTimeout": 0
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#F2FFF1"
+      }
+    }
+  }
+}
