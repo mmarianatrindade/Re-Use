@@ -106,8 +106,24 @@ const decomposition = [
   { name: 'Vidro', time: 'mais de 1 milhão de anos' },
 ];
 
+const faqItems = [
+  {
+    question: 'Como saber se um material é reciclável?',
+    answer: 'A regra mais segura é limpar o item, verificar se ele é seco e separar pelas categorias de papel, vidro, metal, plástico e orgânico.',
+  },
+  {
+    question: 'Posso misturar materiais no mesmo saco?',
+    answer: 'Não. Misturar materiais pode contaminar toda a carga e atrapalhar a reciclagem. Separe antes de levar ao ecoponto.',
+  },
+  {
+    question: 'O que fazer com pilhas, baterias e eletrônicos?',
+    answer: 'Esses itens precisam de tratamento especial e devem ser levados a pontos específicos de coleta de e-lixo e baterias.',
+  },
+];
+
 export default function App() {
   const [selectedMaterial, setSelectedMaterial] = useState(materials[0]);
+  const [expandedFaq, setExpandedFaq] = useState(0);
 
   const selectedMaterialIndex = useMemo(
     () => materials.findIndex((material) => material.id === selectedMaterial.id),
@@ -256,6 +272,18 @@ export default function App() {
           </View>
         </View>
 
+        <View style={styles.quickActions}>
+          <TouchableOpacity style={styles.quickActionItem}>
+            <Text style={styles.quickActionLabel}>✅ Separar</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.quickActionItem}>
+            <Text style={styles.quickActionLabel}>🧺 Coletar</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.quickActionItem}>
+            <Text style={styles.quickActionLabel}>📍 Locais</Text>
+          </TouchableOpacity>
+        </View>
+
         <SectionHeader
           title="Linha do tempo"
           subtitle="Quanto mais tempo o material leva para se decompor, maior o cuidado necessário com o descarte."
@@ -282,6 +310,31 @@ export default function App() {
               reduzindo enchentes, desperdício e emissão de gases nocivos.
             </Text>
           </View>
+        </View>
+
+        <SectionHeader
+          title="Perguntas frequentes"
+          subtitle="Dúvidas simples para você fazer a separação correta todos os dias."
+        />
+
+        <View style={styles.faqContainer}>
+          {faqItems.map((item, index) => {
+            const isOpen = expandedFaq === index;
+            return (
+              <TouchableOpacity
+                key={item.question}
+                style={[styles.faqItem, isOpen && styles.faqItemOpen]}
+                onPress={() => setExpandedFaq(isOpen ? -1 : index)}
+                activeOpacity={0.9}
+              >
+                <View style={styles.faqQuestionRow}>
+                  <Text style={styles.faqQuestion}>{item.question}</Text>
+                  <Text style={styles.faqToggle}>{isOpen ? '−' : '+'}</Text>
+                </View>
+                {isOpen ? <Text style={styles.faqAnswer}>{item.answer}</Text> : null}
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         <SectionHeader
@@ -601,6 +654,29 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     color: '#4A6B5F',
   },
+  quickActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginTop: 6,
+    marginBottom: 10,
+  },
+  quickActionItem: {
+    flex: 1,
+    minWidth: 110,
+    backgroundColor: '#EAFBF0',
+    borderRadius: 18,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#D0EBDD',
+  },
+  quickActionLabel: {
+    fontWeight: '800',
+    color: '#1F5F47',
+    fontSize: 14,
+  },
   materialStepTitle: {
     fontSize: 16,
     fontWeight: '800',
@@ -662,6 +738,47 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#4E766A',
     marginTop: 4,
+  },
+  faqContainer: {
+    gap: 10,
+    marginTop: 8,
+    marginBottom: 10,
+  },
+  faqItem: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    borderWidth: 1,
+    borderColor: '#DDECE2',
+  },
+  faqItemOpen: {
+    borderColor: '#A6D7B5',
+    backgroundColor: '#F6FFF9',
+  },
+  faqQuestionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  faqQuestion: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#183F34',
+    flex: 1,
+    paddingRight: 12,
+  },
+  faqToggle: {
+    fontSize: 28,
+    color: '#1F5F47',
+    fontWeight: '700',
+    lineHeight: 28,
+  },
+  faqAnswer: {
+    fontSize: 14,
+    lineHeight: 22,
+    color: '#4A6B5F',
+    marginTop: 10,
   },
   highlightBox: {
     backgroundColor: '#1E4F3F',
