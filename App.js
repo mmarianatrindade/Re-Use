@@ -147,7 +147,10 @@ export default function App() {
       <StatusBar barStyle="dark-content" backgroundColor="#DDF5E8" />
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.navbar}>
-          <Text style={styles.brand}>ReUse</Text>
+          <View style={styles.brandWrap}>
+            <Text style={styles.brand}>ReUse</Text>
+            <Text style={styles.brandTag}>Eco+</Text>
+          </View>
           <View style={styles.navLinks}>
             <Text style={styles.navLink}>Início</Text>
             <Text style={styles.navLink}>Materiais</Text>
@@ -159,10 +162,10 @@ export default function App() {
           <View style={styles.heroGrid}>
             <View style={styles.heroContent}>
               <Text style={styles.badge}>Sustentabilidade urbana</Text>
-              <Text style={styles.headline}>Descarte consciente e decomposição correta</Text>
+              <Text style={styles.headline}>Seu lixo, sua escolha, o planeta agradece.</Text>
               <Text style={styles.description}>
-                A ReUse ajuda pessoas e comunidades a entender melhor o destino dos resíduos,
-                reduzindo o impacto ambiental e incentivando escolhas mais inteligentes.
+                A ReUse mostra como separar corretamente os resíduos, entender os tempos de decomposição
+                e localizar ecopontos públicos com facilidade na rotina de qualquer cidade.
               </Text>
 
               <View style={styles.heroActions}>
@@ -185,6 +188,34 @@ export default function App() {
               />
             </View>
           </View>
+        </View>
+
+        <View style={styles.trustBar}>
+          <Text style={styles.trustBarTitle}>Mais de 12 mil pessoas já praticam descarte consciente</Text>
+          <TouchableOpacity style={styles.inlineButton} onPress={handleHelpPress}>
+            <Text style={styles.inlineButtonText}>Começar agora</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.highlightRow}>
+          <View style={styles.highlightBoxMini}>
+            <Text style={styles.highlightMiniTitle}>+ 70%</Text>
+            <Text style={styles.highlightMiniText}>de materiais reaproveitáveis</Text>
+          </View>
+          <View style={styles.highlightBoxMini}>
+            <Text style={styles.highlightMiniTitle}>19k</Text>
+            <Text style={styles.highlightMiniText}>pontos de coleta ativos</Text>
+          </View>
+          <View style={styles.highlightBoxMini}>
+            <Text style={styles.highlightMiniTitle}>4 passos</Text>
+            <Text style={styles.highlightMiniText}>para reciclar melhor</Text>
+          </View>
+        </View>
+
+        <View style={styles.ctaBanner}>
+          <Text style={styles.ctaBadge}>Ação diária</Text>
+          <Text style={styles.ctaTitle}>Pequenos hábitos transformam a cidade.</Text>
+          <Text style={styles.ctaText}>Separar corretamente, reduzir resíduos e orientar a comunidade é o primeiro passo para um futuro mais limpo.</Text>
         </View>
 
         <SectionHeader
@@ -282,6 +313,23 @@ export default function App() {
           <TouchableOpacity style={styles.quickActionItem}>
             <Text style={styles.quickActionLabel}>📍 Locais</Text>
           </TouchableOpacity>
+        </View>
+
+        <SectionHeader
+          title="Como funciona"
+          subtitle="Um caminho simples para transformar resíduos em ação consciente e útil para a cidade."
+        />
+
+        <View style={styles.stepsGrid}>
+          {steps.map((step) => (
+            <View key={step.title} style={styles.stepCard}>
+              <View style={styles.stepIcon}>
+                <Text style={styles.stepIconText}>{step.icon}</Text>
+              </View>
+              <Text style={styles.stepTitle}>{step.title}</Text>
+              <Text style={styles.stepText}>{step.text}</Text>
+            </View>
+          ))}
         </View>
 
         <SectionHeader
@@ -385,12 +433,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 10,
     marginBottom: 18,
+    position: 'sticky',
+    top: 0,
+    zIndex: 10,
+    backgroundColor: '#DDF5E8',
+    paddingTop: 12,
+  },
+  brandWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
   brand: {
     fontSize: 24,
     fontWeight: '800',
     color: '#164235',
     letterSpacing: 1,
+  },
+  brandTag: {
+    backgroundColor: '#E5F7EB',
+    color: '#1F5F47',
+    borderRadius: 999,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    fontSize: 11,
+    fontWeight: '800',
   },
   navLinks: {
     flexDirection: 'row',
@@ -411,6 +478,36 @@ const styles = StyleSheet.create({
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 10 },
     elevation: 6,
+    borderWidth: 1,
+    borderColor: '#D7F0E0',
+  },
+  trustBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#163F33',
+    borderRadius: 20,
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+    marginBottom: 18,
+    gap: 10,
+  },
+  trustBarTitle: {
+    flex: 1,
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  inlineButton: {
+    backgroundColor: '#EAFBF0',
+    borderRadius: 999,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+  },
+  inlineButtonText: {
+    color: '#123E32',
+    fontWeight: '800',
+    fontSize: 12,
   },
   heroGrid: {
     flexDirection: 'row',
@@ -489,6 +586,70 @@ const styles = StyleSheet.create({
     borderRadius: 110,
     borderWidth: 6,
     borderColor: '#DDF7E8',
+  },
+  highlightRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 18,
+  },
+  highlightBoxMini: {
+    flex: 1,
+    minWidth: 120,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    paddingVertical: 16,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: '#DCEFE2',
+    shadowColor: '#153E33',
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 3,
+  },
+  highlightMiniTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#164235',
+    marginBottom: 4,
+  },
+  highlightMiniText: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: '#486C62',
+    fontWeight: '600',
+  },
+  ctaBanner: {
+    backgroundColor: '#163F33',
+    borderRadius: 24,
+    padding: 22,
+    marginVertical: 10,
+    borderWidth: 1,
+    borderColor: '#204E40',
+  },
+  ctaBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#EAFBF0',
+    color: '#123E32',
+    borderRadius: 999,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    fontSize: 11,
+    fontWeight: '800',
+    marginBottom: 10,
+  },
+  ctaTitle: {
+    color: '#FFFFFF',
+    fontSize: 24,
+    fontWeight: '800',
+    lineHeight: 30,
+    marginBottom: 8,
+  },
+  ctaText: {
+    color: '#D9F4E3',
+    fontSize: 15,
+    lineHeight: 24,
   },
   statsGrid: {
     flexDirection: 'row',
@@ -638,6 +799,8 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 8 },
     elevation: 4,
+    borderWidth: 1,
+    borderColor: '#E6F0EA',
   },
   benefitIcon: {
     fontSize: 28,
@@ -676,6 +839,54 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#1F5F47',
     fontSize: 14,
+  },
+  stepsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 14,
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  stepCard: {
+    flex: 1,
+    minWidth: 180,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 22,
+    padding: 20,
+    alignItems: 'center',
+    shadowColor: '#153E33',
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: '#E6F0EA',
+  },
+  stepIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    backgroundColor: '#E1F4E8',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+  },
+  stepIconText: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#1D5A45',
+  },
+  stepTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#143B32',
+    marginBottom: 6,
+  },
+  stepText: {
+    fontSize: 14,
+    lineHeight: 22,
+    color: '#4A6B5F',
+    textAlign: 'center',
   },
   materialStepTitle: {
     fontSize: 16,
@@ -818,6 +1029,8 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 8 },
     elevation: 4,
+    borderWidth: 1,
+    borderColor: '#E5F0E8',
   },
   mapImage: {
     width: '100%',
