@@ -1,0 +1,49 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  // API do ReUse (Cloudflare Workers). O site continua no Pages (wrangler.jsonc da raiz).
+  "name": "reuse-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-18",
+  "observability": { "enabled": true },
+  "vars": {
+    // "producao" desliga o retorno de links de e-mail na resposta (linkDev).
+    "AMBIENTE": "producao",
+    // Base dos links de ativação e redefinição de senha enviados por e-mail.
+    "APP_URL": "https://reuse-fiapweb2.pages.dev",
+    // localhost:8081 permite testar o app web local (npm start → w) contra a API publicada.
+    "ORIGENS_PERMITIDAS": "https://reuse-fiapweb2.pages.dev,http://localhost:8081",
+    "EXIGIR_CONFIRMACAO_EMAIL": "false",
+    // Endereço de envio; o domínio precisa estar habilitado no Email Sending da Cloudflare.
+    // Vazio = sem envio real (em desenvolvimento o link volta na resposta).
+    "EMAIL_REMETENTE": ""
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "reuse-db",
+      "database_id": "0c233025-eba1-4532-8c11-bbc259dfa8cc",
+      "migrations_dir": "migrations"
+    }
+  ],
+  // Descomentar depois de habilitar o domínio: `npx wrangler email sending enable seudominio.com.br`.
+  // "send_email": [{ "name": "EMAIL" }],
+  "env": {
+    "dev": {
+      "vars": {
+        "AMBIENTE": "desenvolvimento",
+        "APP_URL": "http://localhost:8081",
+        "ORIGENS_PERMITIDAS": "http://localhost:8081,http://localhost:19006",
+        "EXIGIR_CONFIRMACAO_EMAIL": "false",
+        "EMAIL_REMETENTE": ""
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "reuse-db",
+          "database_id": "0c233025-eba1-4532-8c11-bbc259dfa8cc",
+          "migrations_dir": "migrations"
+        }
+      ]
+    }
+  }
+}

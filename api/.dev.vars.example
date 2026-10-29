@@ -1,0 +1,4 @@
+# Copie para api/.dev.vars (ignorado pelo git) e gere uma chave própria:
+# node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+# Em produção: npx wrangler secret put CPF_CHAVE -c api/wrangler.jsonc
+CPF_CHAVE=

@@ -3,11 +3,15 @@
     "name": "ReUse",
     "slug": "reuse-app",
     "version": "1.0.0",
-    "platforms": ["ios", "android"],
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "splash": {
-      "backgroundColor": "#DDF5E8"
+      "backgroundColor": "#04201C"
     },
     "assetBundlePatterns": [
       "**/*"
@@ -17,8 +21,28 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#DDF5E8"
+        "backgroundColor": "#04201C"
       }
-    }
+    },
+    "plugins": [
+      "expo-font",
+      "expo-asset",
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "O ReUse usa a câmera para a foto do seu rosto e para fotografar os itens que você anuncia.",
+          "photosPermission": "O ReUse acessa suas fotos para você escolher imagens do perfil e dos anúncios.",
+          "microphonePermission": false
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "O ReUse usa sua localização aproximada para mostrar anúncios perto de você. Ela não é compartilhada com outras pessoas."
+        }
+      ]
+    ],
+    "scheme": "reuse"
   }
 }

@@ -1,0 +1,7 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "reuse-fiapweb2",
+  "compatibility_date": "2026-09-18",
+  // Cloudflare Pages (clássico): publica o build web do Expo gerado em dist/.
+  "pages_build_output_dir": "dist"
+}
