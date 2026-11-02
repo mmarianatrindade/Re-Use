@@ -22,6 +22,7 @@ import { ApiError, obterMensagemErro } from '../../../services/api';
 import { montarDadosAnuncio, publicarAnuncio, salvarEdicaoAnuncio } from '../../../services/anunciosService';
 import { chavesLocais, lerLocal, removerLocal, salvarLocal } from '../../../services/armazenamento';
 import { enviarImagem } from '../../../services/midiaService';
+import { capturarContaLocal } from '../../../services/contaLocal';
 import type { AnuncioProprio } from '../../../types/api';
 import { confirmarAcao } from '../../../utils/confirmarAcao';
 import EtapaDetalhes from './EtapaDetalhes';
@@ -51,6 +52,7 @@ const ATRASO_RASCUNHO_MS = 600;
 export default function FormularioAnuncio({ anuncio, valoresIniciais, onConcluido }: FormularioAnuncioProps) {
   const navigation = useNavigation();
   const { usuario } = useSessao();
+  const contaRascunho = useRef(capturarContaLocal()).current;
   const { gutter } = useResponsive();
   const editando = anuncio !== undefined;
   const [etapa, setEtapa] = useState(0);
@@ -78,7 +80,7 @@ export default function FormularioAnuncio({ anuncio, valoresIniciais, onConcluid
     if (editando) {
       return;
     }
-    lerLocal<RascunhoAnuncio>(chavesLocais.rascunhoAnuncio).then((rascunho) => {
+    lerLocal<RascunhoAnuncio>(chavesLocais.rascunhoAnuncio, contaRascunho).then((rascunho) => {
       if (rascunho) {
         // Mescla com os padrões: rascunhos salvos por versões antigas do app não têm os campos novos.
         reset({ ...VALORES_INICIAIS_ANUNCIO, ...rascunho.valores }, { keepDefaultValues: true });
@@ -100,7 +102,7 @@ export default function FormularioAnuncio({ anuncio, valoresIniciais, onConcluid
       clearTimeout(temporizadorRascunho.current);
       temporizadorRascunho.current = setTimeout(() => {
         const rascunho: RascunhoAnuncio = { valores: valores as AnuncioFormDados, etapa, salvoEm: new Date().toISOString() };
-        void salvarLocal(chavesLocais.rascunhoAnuncio, rascunho);
+        void salvarLocal(chavesLocais.rascunhoAnuncio, rascunho, contaRascunho);
       }, ATRASO_RASCUNHO_MS);
     });
     return () => {
@@ -125,7 +127,7 @@ export default function FormularioAnuncio({ anuncio, valoresIniciais, onConcluid
     setEtapa(indice);
     scrollRef.current?.scrollTo({ y: 0, animated: false });
     if (!editando && rascunhoCarregado.current) {
-      void salvarLocal(chavesLocais.rascunhoAnuncio, { valores: getValues(), etapa: indice, salvoEm: new Date().toISOString() });
+      void salvarLocal(chavesLocais.rascunhoAnuncio, { valores: getValues(), etapa: indice, salvoEm: new Date().toISOString() }, contaRascunho);
     }
   };
 
@@ -149,10 +151,13 @@ export default function FormularioAnuncio({ anuncio, valoresIniciais, onConcluid
       destrutivo: true,
     });
     if (confirmado) {
-      await removerLocal(chavesLocais.rascunhoAnuncio);
+      rascunhoCarregado.current = false;
+      clearTimeout(temporizadorRascunho.current);
+      await removerLocal(chavesLocais.rascunhoAnuncio, contaRascunho);
       reset(VALORES_INICIAIS_ANUNCIO);
       setRascunhoRestaurado(false);
       irParaEtapa(0);
+      rascunhoCarregado.current = true;
     }
   };
 
@@ -181,7 +186,7 @@ export default function FormularioAnuncio({ anuncio, valoresIniciais, onConcluid
         // Pausa o rascunho enquanto limpa, para nenhum salvamento pendente recriá-lo.
         rascunhoCarregado.current = false;
         clearTimeout(temporizadorRascunho.current);
-        await removerLocal(chavesLocais.rascunhoAnuncio);
+        await removerLocal(chavesLocais.rascunhoAnuncio, contaRascunho);
         reset(VALORES_INICIAIS_ANUNCIO);
         setEtapa(0);
         setRascunhoRestaurado(false);

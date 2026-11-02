@@ -39,7 +39,14 @@ export const colors = {
   warningSoft: '#FFF4DB',
   success: '#1F6B2E',
   successSoft: '#E3F4E1',
-  placeholder: '#8AA39D',
+  // Contraste ≥ 4,5:1 sobre branco (o tom anterior ficava em 2,7:1).
+  placeholder: '#5F7A74',
+  // Bordas dos avisos, estrelas de reputação e fundo de campo com erro.
+  warningBorder: '#F3DDA8',
+  dangerBorder: '#F3C7C2',
+  successBorder: '#BFE3BC',
+  dangerFaint: '#FFFBFA',
+  star: '#E0A100',
   // Usado em rgba() para sobreposições sobre fotos.
   overlayRgb: '2, 32, 28',
 };

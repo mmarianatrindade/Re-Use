@@ -34,6 +34,7 @@ export default function CamposEndereco<T extends CamposEnderecoForm>({ control, 
   const [buscando, setBuscando] = useState(false);
   const [cepNaoEncontrado, setCepNaoEncontrado] = useState(false);
   const ultimoCepBuscado = useRef('');
+  const consultaAtual = useRef(0);
   const complementoRef = useRef<TextInput>(null);
 
   const preencher = (nome: keyof CamposEnderecoForm & string, valor: string) =>
@@ -41,8 +42,11 @@ export default function CamposEndereco<T extends CamposEnderecoForm>({ control, 
 
   // Ao completar os 8 dígitos, busca o endereço e leva o foco direto para o número.
   const handleCepAlterado = async (valor: string) => {
+    const consulta = ++consultaAtual.current;
     const digitos = extrairDigitos(valor);
-    if (digitos.length !== 8 || digitos === ultimoCepBuscado.current) {
+    if (digitos.length !== 8) {
+      ultimoCepBuscado.current = '';
+      setBuscando(false);
       return;
     }
     ultimoCepBuscado.current = digitos;
@@ -50,9 +54,11 @@ export default function CamposEndereco<T extends CamposEnderecoForm>({ control, 
     setCepNaoEncontrado(false);
 
     const endereco = await buscarEnderecoPorCep(digitos);
+    if (consulta !== consultaAtual.current) return;
     setBuscando(false);
 
     if (!endereco) {
+      ultimoCepBuscado.current = '';
       setCepNaoEncontrado(true);
       return;
     }
@@ -65,6 +71,8 @@ export default function CamposEndereco<T extends CamposEnderecoForm>({ control, 
 
   // Endereço escolhido nas sugestões: preenche só o que veio e leva o foco ao que falta (normalmente o número).
   const handleSugestao = (endereco: EnderecoSugerido) => {
+    consultaAtual.current += 1;
+    setBuscando(false);
     if (endereco.cep) {
       ultimoCepBuscado.current = endereco.cep;
       preencher('cep', mascararCep(endereco.cep));

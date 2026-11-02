@@ -123,7 +123,7 @@ const styles = StyleSheet.create({
   bloco: { marginTop: 22 },
   blocoTitulo: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.text, marginBottom: 8 },
   reputacaoLinha: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
-  estrelas: { fontSize: 18, color: '#E0A100', letterSpacing: 1 },
+  estrelas: { fontSize: 18, color: colors.star, letterSpacing: 1 },
   nota: { fontFamily: fonts.bodyBold, fontSize: 18, color: colors.text, fontVariant: ['tabular-nums'] },
   total: { fontFamily: fonts.body, fontSize: 14, color: colors.textMuted },
   textoSuave: { fontFamily: fonts.body, fontSize: 14, lineHeight: 20, color: colors.textMuted },

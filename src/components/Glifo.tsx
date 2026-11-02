@@ -1,4 +1,5 @@
 import type { ReactElement } from 'react';
+import { colors } from '../constants/colors';
 import Svg, { Circle, Path } from 'react-native-svg';
 
 // Ícones em vetor desenhados dentro das tags. Substituem símbolos de texto (⌂ ♻ ⇄ ♥ …), que cada
@@ -56,7 +57,7 @@ export function temGlifo(simbolo: string | undefined) {
   return simbolo !== undefined && simbolo in DESENHOS;
 }
 
-export default function Glifo({ simbolo, tamanho, cor = '#FFFFFF' }: { simbolo: string; tamanho: number; cor?: string }) {
+export default function Glifo({ simbolo, tamanho, cor = colors.textOnDark }: { simbolo: string; tamanho: number; cor?: string }) {
   const desenhar = DESENHOS[simbolo];
   if (!desenhar) {
     return null;

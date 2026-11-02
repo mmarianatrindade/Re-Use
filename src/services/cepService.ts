@@ -1,6 +1,8 @@
 import { extrairDigitos } from '../schemas/comum';
 import type { EnderecoSugerido, SugestaoEndereco } from '../types/api';
 import { requisitar } from './api';
+import { lerCache, salvarCache, TTL_CACHE } from './cache';
+import { capturarContaLocal } from './contaLocal';
 
 export interface EnderecoCep {
   logradouro: string;
@@ -20,26 +22,31 @@ interface RespostaViaCep {
 // Preenche rua, bairro, cidade e UF a partir do CEP (ViaCEP, serviço público e gratuito).
 // Retorna null se o CEP não existir ou o serviço não responder — o usuário pode preencher à mão.
 export async function buscarEnderecoPorCep(cep: string): Promise<EnderecoCep | null> {
+  const conta = capturarContaLocal();
   const digitos = extrairDigitos(cep);
   if (digitos.length !== 8) {
     return null;
   }
 
+  // CEP já consultado: responde do cache (vale até sem internet) e poupa a chamada ao ViaCEP.
+  const salvo = await lerCache<EnderecoCep>(`cep/${digitos}`, TTL_CACHE.cep);
+  if (salvo) {
+    return salvo.dados;
+  }
+
   try {
-    const resposta = await fetch(`https://viacep.com.br/ws/${digitos}/json/`);
-    if (!resposta.ok) {
-      return null;
-    }
-    const dados = (await resposta.json()) as RespostaViaCep;
+    const dados = await consultarCep<RespostaViaCep>(`https://viacep.com.br/ws/${digitos}/json/`);
     if (dados.erro) {
       return null;
     }
-    return {
+    const endereco: EnderecoCep = {
       logradouro: dados.logradouro ?? '',
       bairro: dados.bairro ?? '',
       cidade: dados.localidade ?? '',
       uf: dados.uf ?? '',
     };
+    void salvarCache(`cep/${digitos}`, endereco, conta);
+    return endereco;
   } catch {
     return null;
   }
@@ -58,11 +65,7 @@ export async function buscarCoordenadasPorCep(cep: string): Promise<CoordenadasC
     return null;
   }
   try {
-    const resposta = await fetch(`https://cep.awesomeapi.com.br/json/${digitos}`);
-    if (!resposta.ok) {
-      return null;
-    }
-    const dados = (await resposta.json()) as { lat?: string; lng?: string };
+    const dados = await consultarCep<{ lat?: string; lng?: string }>(`https://cep.awesomeapi.com.br/json/${digitos}`);
     const latitude = Number(dados.lat);
     const longitude = Number(dados.lng);
     return Number.isFinite(latitude) && Number.isFinite(longitude) && latitude !== 0 ? { latitude, longitude } : null;
@@ -91,4 +94,16 @@ export async function buscarSugestoesEndereco(texto: string, sessao: string) {
 // Endereço completo do lugar escolhido (CEP, rua, número, bairro, cidade, UF e coordenada aproximada).
 export function buscarEnderecoSugerido(lugarId: string, sessao: string) {
   return requisitar<EnderecoSugerido>(`/enderecos/lugar/${encodeURIComponent(lugarId)}?sessao=${sessao}`, { token: null });
+}
+
+async function consultarCep<T>(url: string): Promise<T> {
+  const controlador = new AbortController();
+  const temporizador = setTimeout(() => controlador.abort(), 5000);
+  try {
+    const resposta = await fetch(url, { signal: controlador.signal });
+    if (!resposta.ok) throw new Error('Consulta de CEP indisponível.');
+    return await resposta.json() as T;
+  } finally {
+    clearTimeout(temporizador);
+  }
 }

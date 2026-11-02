@@ -1,4 +1,4 @@
-import { Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../constants/colors';
 import { fonts } from '../constants/fonts';
@@ -32,6 +32,7 @@ export default function ActionSheet({ visivel, titulo, acoes, onFechar }: Action
         <View style={styles.alca} />
         <Text style={styles.titulo}>{titulo}</Text>
 
+        <ScrollView style={styles.lista}>
         {acoes.map((acao) => (
           <Pressable
             key={acao.id}
@@ -48,6 +49,7 @@ export default function ActionSheet({ visivel, titulo, acoes, onFechar }: Action
             {acao.descricao ? <Text style={styles.acaoDescricao}>{acao.descricao}</Text> : null}
           </Pressable>
         ))}
+        </ScrollView>
 
         <Pressable onPress={onFechar} accessibilityRole="button" style={({ pressed }) => [styles.cancelar, pressed && styles.acaoPressionada]}>
           <Text style={styles.cancelarTexto}>Cancelar</Text>
@@ -60,6 +62,7 @@ export default function ActionSheet({ visivel, titulo, acoes, onFechar }: Action
 const styles = StyleSheet.create({
   fundo: { flex: 1, backgroundColor: 'rgba(4, 32, 28, 0.45)' },
   folha: {
+    maxHeight: '85%',
     backgroundColor: colors.surface,
     borderTopLeftRadius: radii.card,
     borderTopRightRadius: radii.card,
@@ -69,6 +72,7 @@ const styles = StyleSheet.create({
     maxWidth: 560,
     alignSelf: 'center',
   },
+  lista: { flexShrink: 1 },
   alca: { alignSelf: 'center', width: 40, height: 5, borderRadius: 3, backgroundColor: colors.border, marginBottom: 12 },
   titulo: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.textMuted, marginBottom: 6, paddingHorizontal: 8 },
   acao: { minHeight: 56, justifyContent: 'center', paddingHorizontal: 8, paddingVertical: 10, borderRadius: radii.inner },

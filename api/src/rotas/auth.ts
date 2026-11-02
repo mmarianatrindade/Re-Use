@@ -8,12 +8,12 @@ import {
 } from '../../../src/schemas/usuario';
 import type { MensagemResposta, SessaoResposta } from '../../../src/types/api';
 import { calcularHashCpf, cifrarCpf, gerarHashSenha, gerarId, obterHashFicticio, verificarSenha } from '../cripto';
-import { consumirTokenEmail, enviarLinkPorEmail, enviouRecentemente } from '../email';
+import { consumirTokenEmail, enviarLinkPorEmail, enviouRecentemente, exigirEnvioEmail } from '../email';
 import { resolverCoordenadas } from '../geo';
 import { exigeConfirmacaoEmail, type Env } from '../env';
 import { ErroApi, agoraIso, lerCorpo, obterDispositivo, obterIp, responderJson, somarMinutos } from '../http';
 import { buscarUsuario, gerarNomePublico, mapearUsuarioPrivado, type UsuarioRow } from '../mapeadores';
-import { criarSessao, exigirSessao, revogarSessao, revogarTodasSessoes } from '../sessao';
+import { criarSessao, exigirSessao, revogarSessao, revogarTodasSessoes, rotacionarSessao } from '../sessao';
 
 // Após MAX_TENTATIVAS senhas erradas seguidas, a conta fica bloqueada por BLOQUEIO_MINUTOS.
 const MAX_TENTATIVAS = 5;
@@ -24,6 +24,7 @@ function ehErroUnico(erro: unknown) {
 }
 
 export async function cadastrar(request: Request, env: Env, origem: string) {
+  if (exigeConfirmacaoEmail(env)) exigirEnvioEmail(env);
   const dados = await lerCorpo(request, cadastroApiSchema);
 
   if (dados.termosVersao !== TERMOS_VERSAO) {
@@ -116,10 +117,10 @@ export async function entrar(request: Request, env: Env, origem: string) {
   }
 
   if (!(await verificarSenha(dados.senha, usuario.senha_hash))) {
-    const tentativas = usuario.tentativas_login + 1;
-    const bloquear = tentativas >= MAX_TENTATIVAS;
-    await env.DB.prepare('UPDATE users SET tentativas_login = ?, bloqueado_ate = ? WHERE id = ?')
-      .bind(bloquear ? 0 : tentativas, bloquear ? somarMinutos(BLOQUEIO_MINUTOS) : null, usuario.id)
+    await env.DB.prepare(`UPDATE users SET
+      tentativas_login = CASE WHEN tentativas_login + 1 >= ? THEN 0 ELSE tentativas_login + 1 END,
+      bloqueado_ate = CASE WHEN tentativas_login + 1 >= ? THEN ? ELSE bloqueado_ate END WHERE id = ?`)
+      .bind(MAX_TENTATIVAS, MAX_TENTATIVAS, somarMinutos(BLOQUEIO_MINUTOS), usuario.id)
       .run();
     throw credenciaisInvalidas;
   }
@@ -139,8 +140,7 @@ export async function renovarSessao(request: Request, env: Env, origem: string) 
     throw new ErroApi(401, 'SESSAO_INVALIDA', 'Sua sessão expirou. Entre novamente.');
   }
 
-  const sessao = await criarSessao(env, atual.userId, request);
-  await revogarSessao(env, atual.sessaoId);
+  const sessao = await rotacionarSessao(env, atual, request);
 
   const resposta: SessaoResposta = { ...sessao, usuario: mapearUsuarioPrivado(usuario, origem, env) };
   return responderJson(resposta);
@@ -188,6 +188,7 @@ export async function reenviarAtivacao(request: Request, env: Env) {
 
 // Resposta idêntica exista ou não a conta, para não revelar quais e-mails estão cadastrados.
 export async function recuperarSenha(request: Request, env: Env) {
+  exigirEnvioEmail(env);
   const { email } = await lerCorpo(request, recuperarSenhaSchema);
   const usuario = await env.DB.prepare('SELECT id, email, nome_completo FROM users WHERE email = ?')
     .bind(email)

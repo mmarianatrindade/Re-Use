@@ -4,7 +4,7 @@ import { Platform } from 'react-native';
 import type { UploadResposta } from '../types/api';
 import { requisitar } from './api';
 
-// Câmera e galeria do aparelho (expo-image-picker) e envio das fotos para a API (R2).
+// Câmera e galeria do aparelho (expo-image-picker) e envio das fotos para a API (D1).
 
 export type OrigemImagem = 'camera' | 'galeria';
 

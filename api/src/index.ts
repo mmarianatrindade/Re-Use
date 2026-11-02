@@ -1,4 +1,5 @@
 import type { Env } from './env';
+import { limitarRequisicoes } from './limites';
 import { ErroApi, aplicarCors, responderErro, responderJson } from './http';
 import {
   alterarStatusAnuncio,
@@ -97,6 +98,7 @@ const rotas: Rota[] = [
 async function tratarRequisicao(request: Request, env: Env) {
   const url = new URL(request.url);
   const origem = url.origin;
+  await limitarRequisicoes(request, env);
 
   if (request.method === 'GET' && url.pathname.startsWith('/arquivos/')) {
     return lerArquivo(env, decodeURIComponent(url.pathname.slice('/arquivos/'.length)));

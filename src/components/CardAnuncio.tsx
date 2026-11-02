@@ -1,9 +1,10 @@
-import type { ReactNode } from 'react';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { memo, type ReactNode } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors } from '../constants/colors';
 import { fonts } from '../constants/fonts';
 import type { Modalidade, StatusAnuncio } from '../schemas/anuncio';
 import { formatarPrecoAnuncio, modalidadeInfo } from '../utils/formatarAnuncio';
+import Foto from './Foto';
 import StatusBadge from './StatusBadge';
 import TagsAnuncio from './TagsAnuncio';
 
@@ -32,7 +33,7 @@ interface CardAnuncioProps {
 }
 
 // O único cartão de anúncio do app: foto primeiro, preço na cor da modalidade, título e uma linha de apoio.
-export default function CardAnuncio({ anuncio, onPress, variante = 'grade', largura, mostrarStatus = false, acessorio }: CardAnuncioProps) {
+function CardAnuncio({ anuncio, onPress, variante = 'grade', largura, mostrarStatus = false, acessorio }: CardAnuncioProps) {
   const cor = modalidadeInfo[anuncio.modalidade].cor;
   const preco = formatarPrecoAnuncio(anuncio.modalidade, anuncio.precoCentavos);
   const rotulo = `${anuncio.titulo}, ${preco}, ${modalidadeInfo[anuncio.modalidade].label}${anuncio.emDestaque ? ', anúncio em destaque' : ''}`;
@@ -41,7 +42,7 @@ export default function CardAnuncio({ anuncio, onPress, variante = 'grade', larg
     return (
       <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={rotulo} style={({ pressed }) => [styles.linha, pressed && styles.pressionado]}>
         <View style={styles.linhaFoto}>
-          {anuncio.capaUrl ? <Image source={{ uri: anuncio.capaUrl }} style={styles.imagem} /> : null}
+          {anuncio.capaUrl ? <Foto uri={anuncio.capaUrl} style={styles.imagem} /> : null}
           <TagsAnuncio modalidade={anuncio.modalidade} status={anuncio.status} size={20} style={styles.linhaTags} />
         </View>
         <View style={styles.linhaTextos}>
@@ -71,7 +72,7 @@ export default function CardAnuncio({ anuncio, onPress, variante = 'grade', larg
       style={({ pressed }) => [largura ? { width: largura } : null, pressed && styles.pressionado]}
     >
       <View style={styles.foto}>
-        {anuncio.capaUrl ? <Image source={{ uri: anuncio.capaUrl }} style={styles.imagem} resizeMode="cover" /> : null}
+        {anuncio.capaUrl ? <Foto uri={anuncio.capaUrl} style={styles.imagem} /> : null}
         <TagsAnuncio modalidade={anuncio.modalidade} status={anuncio.status} size={26} style={styles.tags} />
         {anuncio.emDestaque ? (
           <View style={styles.destaque}>
@@ -93,6 +94,30 @@ export default function CardAnuncio({ anuncio, onPress, variante = 'grade', larg
     </Pressable>
   );
 }
+
+// Só redesenha o cartão quando algo que aparece nele muda. O onPress fica de fora da comparação de propósito:
+// quem usa o cartão passa funções novas a cada render e os destinos dependem só do id do anúncio.
+// Com um acessório (menu de opções), o cartão sempre redesenha, porque o acessório é um elemento novo a cada render.
+function mesmoCartao(anterior: CardAnuncioProps, proximo: CardAnuncioProps) {
+  const a = anterior.anuncio;
+  const b = proximo.anuncio;
+  return (
+    anterior.variante === proximo.variante &&
+    anterior.largura === proximo.largura &&
+    anterior.mostrarStatus === proximo.mostrarStatus &&
+    anterior.acessorio === proximo.acessorio &&
+    a.id === b.id &&
+    a.titulo === b.titulo &&
+    a.modalidade === b.modalidade &&
+    a.precoCentavos === b.precoCentavos &&
+    a.capaUrl === b.capaUrl &&
+    a.status === b.status &&
+    a.emDestaque === b.emDestaque &&
+    a.meta === b.meta
+  );
+}
+
+export default memo(CardAnuncio, mesmoCartao);
 
 const styles = StyleSheet.create({
   pressionado: { opacity: 0.82 },

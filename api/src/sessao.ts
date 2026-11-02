@@ -57,6 +57,20 @@ export async function revogarSessao(env: Env, sessaoId: string) {
   await env.DB.prepare('UPDATE sessions SET revogado_em = ? WHERE id = ?').bind(agoraIso(), sessaoId).run();
 }
 
+export async function rotacionarSessao(env: Env, atual: SessaoAtual, request: Request) {
+  const token = gerarToken();
+  const agora = agoraIso();
+  const expiraEm = new Date(Date.now() + SESSAO_DIAS * 24 * 60 * 60_000).toISOString();
+  const resultado = await env.DB.batch([
+    env.DB.prepare(`INSERT INTO sessions (id, user_id, token_hash, dispositivo, criado_em, expira_em)
+      SELECT ?, user_id, ?, ?, ?, ? FROM sessions WHERE id = ? AND revogado_em IS NULL AND expira_em > ?`)
+      .bind(gerarId(), await calcularSha256(token), obterDispositivo(request), agora, expiraEm, atual.sessaoId, agora),
+    env.DB.prepare('UPDATE sessions SET revogado_em = ? WHERE id = ? AND revogado_em IS NULL').bind(agora, atual.sessaoId),
+  ]);
+  if (resultado[0].meta.changes !== 1) throw new ErroApi(401, 'SESSAO_INVALIDA', 'Sua sessão expirou. Entre novamente.');
+  return { token, expiraEm };
+}
+
 export async function revogarTodasSessoes(env: Env, userId: string) {
   await env.DB.prepare('UPDATE sessions SET revogado_em = ? WHERE user_id = ? AND revogado_em IS NULL')
     .bind(agoraIso(), userId)

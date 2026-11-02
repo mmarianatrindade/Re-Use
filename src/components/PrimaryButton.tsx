@@ -20,7 +20,7 @@ const estilosVariante: Record<Variante, { fundo: string; texto: string; borda: s
   primario: { fundo: colors.primary, texto: colors.textOnDark, borda: colors.primary },
   secundario: { fundo: colors.surface, texto: colors.primary, borda: colors.border },
   fantasma: { fundo: 'transparent', texto: colors.primary, borda: 'transparent' },
-  perigo: { fundo: colors.surface, texto: colors.danger, borda: '#F3C7C2' },
+  perigo: { fundo: colors.surface, texto: colors.danger, borda: colors.dangerBorder },
 };
 
 // Botão em pílula com área de toque de 52 px (48 no compacto) e estado de carregamento.
@@ -56,7 +56,7 @@ export default function PrimaryButton({
     >
       <View style={styles.conteudo}>
         {carregando ? <ActivityIndicator color={estilo.texto} size="small" style={styles.indicador} /> : null}
-        <Text style={[styles.label, compacto && styles.labelCompacto, { color: estilo.texto }]} numberOfLines={1}>
+        <Text style={[styles.label, compacto && styles.labelCompacto, { color: estilo.texto }]}>
           {label}
         </Text>
       </View>

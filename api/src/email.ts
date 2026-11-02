@@ -1,8 +1,14 @@
 import { calcularSha256, gerarId, gerarToken } from './cripto';
 import { emDesenvolvimento, type Env } from './env';
-import { agoraIso, somarMinutos } from './http';
+import { ErroApi, agoraIso, somarMinutos } from './http';
 
 type TipoTokenEmail = 'ativacao' | 'recuperacao';
+
+export function exigirEnvioEmail(env: Env) {
+  if (!emDesenvolvimento(env) && (!env.EMAIL || !env.EMAIL_REMETENTE)) {
+    throw new ErroApi(503, 'EMAIL_INDISPONIVEL', 'O envio de e-mail está indisponível neste ambiente. Tente novamente mais tarde.');
+  }
+}
 
 const VALIDADE_MINUTOS: Record<TipoTokenEmail, number> = {
   ativacao: 24 * 60,
@@ -43,6 +49,7 @@ export async function enviarLinkPorEmail(
   destino: { userId: string; email: string; nome: string },
   tipo: TipoTokenEmail,
 ): Promise<string | undefined> {
+  exigirEnvioEmail(env);
   const token = gerarToken();
 
   // Um novo link invalida os anteriores do mesmo tipo.
@@ -72,6 +79,7 @@ export async function enviarLinkPorEmail(
       return undefined;
     } catch (erro) {
       console.error('Falha ao enviar e-mail', tipo, erro);
+      if (!emDesenvolvimento(env)) throw new ErroApi(502, 'EMAIL_INDISPONIVEL', 'Não foi possível enviar o e-mail. Tente novamente mais tarde.');
     }
   } else {
     console.warn(`Envio de e-mail não configurado (${tipo}).`);

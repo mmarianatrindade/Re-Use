@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform, Pressable, Share, StyleSheet, Text, View } from 'react-native';
 import ActionSheet from '../../components/ActionSheet';
 import AnuncioPreview from '../../components/AnuncioPreview';
@@ -15,18 +15,19 @@ import { useSessao } from '../../contexts/SessaoContext';
 import { useResponsive } from '../../hooks/useResponsive';
 import type { TelaAbaProps } from '../../navigation/tipos';
 import { MOTIVOS_DENUNCIA, type Modalidade } from '../../schemas/anuncio';
-import { obterMensagemErro } from '../../services/api';
-import { buscarAnuncioPublico, denunciarAnuncio, registrarVisualizacao } from '../../services/anunciosService';
+import { ApiError, obterMensagemErro } from '../../services/api';
+import {
+  buscarAnuncioPublico,
+  denunciarAnuncio,
+  descartarAnuncioEmCache,
+  lerAnuncioPublicoEmCache,
+  registrarVisualizacao,
+} from '../../services/anunciosService';
+import { descreverIdade } from '../../services/cache';
 import { alternarSalvo, estaSalvo } from '../../services/salvosService';
 import type { AnuncioPublico } from '../../types/api';
 import { formatarMesAno, obterLabelTipoConta } from '../../utils/formatarAnuncio';
 import { showMessage } from '../../utils/showMessage';
-
-const ACAO_POR_MODALIDADE: Record<Modalidade, string> = {
-  venda: 'Tenho interesse',
-  troca: 'Propor troca',
-  doacao: 'Solicitar doação',
-};
 
 const URL_SITE = 'https://reuse-fiapweb2.pages.dev';
 
@@ -45,27 +46,52 @@ function BotaoAcao({ rotulo, ativo = false, onPress }: { rotulo: string; ativo?:
 
 export default function AnuncioDetalheScreen({ navigation, route }: TelaAbaProps<'AnuncioDetalhe'>) {
   const { anuncioId } = route.params;
-  const { status } = useSessao();
+  const { status, usuario } = useSessao();
+  const requisicaoAtual = useRef(0);
   const { gutter } = useResponsive();
   const [anuncio, setAnuncio] = useState<AnuncioPublico | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [salvo, setSalvo] = useState(false);
   const [menuDenuncia, setMenuDenuncia] = useState(false);
 
+  // Quando a API falha mas há uma cópia salva, guarda a hora dela para avisar que os dados podem estar velhos.
+  const [copiaSalvaEm, setCopiaSalvaEm] = useState<number | null>(null);
+
+  // Abre na hora com a cópia salva (se houver) e atualiza em seguida com a API.
   const carregarAnuncio = useCallback(async () => {
+    const numero = ++requisicaoAtual.current;
     setErro(null);
+    setCopiaSalvaEm(null);
+    const salvo = await lerAnuncioPublicoEmCache(anuncioId);
+    if (numero !== requisicaoAtual.current) return;
+    if (salvo) {
+      setAnuncio((atual) => atual ?? salvo.dados);
+    }
     try {
-      setAnuncio(await buscarAnuncioPublico(anuncioId));
+      const resposta = await buscarAnuncioPublico(anuncioId);
+      if (numero === requisicaoAtual.current) setAnuncio(resposta);
     } catch (falha) {
-      setErro(obterMensagemErro(falha));
+      if (numero !== requisicaoAtual.current) return;
+      if (falha instanceof ApiError && falha.status === 404) {
+        // O anúncio saiu do ar: não mostra a cópia antiga.
+        void descartarAnuncioEmCache(anuncioId);
+        setAnuncio(null);
+        setErro(obterMensagemErro(falha));
+      } else if (salvo) {
+        setCopiaSalvaEm(salvo.salvoEm);
+      } else {
+        setErro(obterMensagemErro(falha));
+      }
     }
   }, [anuncioId]);
 
   useEffect(() => {
+    setAnuncio(null);
     void carregarAnuncio();
     void registrarVisualizacao(anuncioId);
     estaSalvo(anuncioId).then(setSalvo);
-  }, [anuncioId, carregarAnuncio]);
+    return () => { requisicaoAtual.current += 1; };
+  }, [anuncioId, carregarAnuncio, status, usuario?.id]);
 
   if (!anuncio) {
     return (
@@ -85,18 +111,6 @@ export default function AnuncioDetalheScreen({ navigation, route }: TelaAbaProps
   const disponivel = anuncio.status === 'disponivel';
   const link = `${URL_SITE}/anuncios/${anuncio.id}`;
 
-  // Propostas, pedidos e chat são da Fase 4; por enquanto o botão explica o próximo passo.
-  const handleNegociar = () => {
-    if (status !== 'autenticado') {
-      navigation.navigate('Entrar');
-      return;
-    }
-    showMessage(
-      ACAO_POR_MODALIDADE[anuncio.modalidade],
-      'As propostas e conversas entre interessado e anunciante chegam na próxima etapa do ReUse. Por enquanto, você pode salvar o anúncio e ver o perfil de quem anunciou.',
-    );
-  };
-
   const handleSalvar = async () => {
     setSalvo(
       await alternarSalvo({
@@ -115,8 +129,12 @@ export default function AnuncioDetalheScreen({ navigation, route }: TelaAbaProps
   const handleCompartilhar = async () => {
     try {
       if (Platform.OS === 'web' && typeof navigator !== 'undefined' && !navigator.share) {
-        await navigator.clipboard?.writeText(link);
-        showMessage('Link copiado', link);
+        if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(link);
+          showMessage('Link copiado', link);
+        } else {
+          showMessage('Link do anúncio', link);
+        }
         return;
       }
       await Share.share({ message: `${anuncio.titulo} no ReUse: ${link}`, url: link, title: anuncio.titulo });
@@ -141,10 +159,10 @@ export default function AnuncioDetalheScreen({ navigation, route }: TelaAbaProps
   const rodape = anuncio.proprio ? (
     <PrimaryButton label="Gerenciar meu anúncio" onPress={() => navigation.navigate('GerenciarAnuncio', { anuncioId: anuncio.id })} />
   ) : disponivel ? (
-    <PrimaryButton
-      label={status === 'autenticado' ? ACAO_POR_MODALIDADE[anuncio.modalidade] : `Entrar para ${ACAO_POR_MODALIDADE[anuncio.modalidade].toLowerCase()}`}
-      onPress={handleNegociar}
-    />
+    <View>
+      <Text style={tipografia.legenda}>Propostas e conversas estarão disponíveis em uma próxima etapa.</Text>
+      <PrimaryButton label={salvo ? 'Remover dos salvos' : 'Salvar para acompanhar'} onPress={() => void handleSalvar()} />
+    </View>
   ) : undefined;
 
   const blocoAnunciante = (
@@ -173,6 +191,9 @@ export default function AnuncioDetalheScreen({ navigation, route }: TelaAbaProps
 
   return (
     <Screen larguraMaxima={680} rodape={rodape}>
+      {copiaSalvaEm !== null ? (
+        <Banner tom="aviso">{`Sem conexão: mostrando a cópia deste anúncio salva ${descreverIdade(copiaSalvaEm)}. Preço e status podem ter mudado.`}</Banner>
+      ) : null}
       <AnuncioPreview
         colarNoTopo
         gutter={gutter}

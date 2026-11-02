@@ -1,5 +1,5 @@
 import { useFocusEffect } from '@react-navigation/native';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import ActionSheet from '../../components/ActionSheet';
 import CardAnuncio from '../../components/CardAnuncio';
@@ -20,12 +20,14 @@ import { STATUS_ANUNCIO, type StatusAnuncio } from '../../schemas/anuncio';
 import { ApiError, obterMensagemErro } from '../../services/api';
 import { lerMeusAnunciosEmCache, listarMeusAnuncios } from '../../services/anunciosService';
 import { chavesLocais, salvarLocal } from '../../services/armazenamento';
+import { capturarContaLocal } from '../../services/contaLocal';
 import type { AnuncioProprio } from '../../types/api';
 import { cardDeProprio } from '../../utils/formatarAnuncio';
 
 type Filtro = StatusAnuncio | 'todos';
 
 function ConteudoNegociacoes({ navigation }: TelaAbaProps<'NegociacoesLista'>) {
+  const conta = useRef(capturarContaLocal()).current;
   const [anuncios, setAnuncios] = useState<AnuncioProprio[] | null>(null);
   const [filtro, setFiltro] = useState<Filtro>('todos');
   const [atualizando, setAtualizando] = useState(false);
@@ -36,7 +38,7 @@ function ConteudoNegociacoes({ navigation }: TelaAbaProps<'NegociacoesLista'>) {
   const atualizarLista = useCallback((transformar: (lista: AnuncioProprio[]) => AnuncioProprio[]) => {
     setAnuncios((atual) => {
       const nova = transformar(atual ?? []);
-      void salvarLocal(chavesLocais.meusAnuncios, nova);
+      void salvarLocal(chavesLocais.meusAnuncios, nova, conta);
       return nova;
     });
   }, []);
@@ -97,6 +99,7 @@ function ConteudoNegociacoes({ navigation }: TelaAbaProps<'NegociacoesLista'>) {
   if (anuncios.length === 0) {
     return (
       <Screen atualizando={atualizando} onAtualizar={handleAtualizar}>
+        {aviso ? <Banner tom="aviso">{aviso}</Banner> : null}
         <EmptyState
           imagem={{ source: fundo.infantil, proporcao: 520 / 330 }}
           titulo="Nada publicado ainda"
@@ -128,6 +131,7 @@ function ConteudoNegociacoes({ navigation }: TelaAbaProps<'NegociacoesLista'>) {
       </Text>
 
       <Text style={tipografia.tituloSecao}>Meus anúncios</Text>
+      <Text style={tipografia.apoio}>Gerencie publicações, reservas e status. Propostas e conversas chegam em uma próxima etapa.</Text>
       <Text style={styles.resumo}>
         {contagem.disponivel} {contagem.disponivel === 1 ? 'anúncio disponível' : 'anúncios disponíveis'}, com {totalVisualizacoes}{' '}
         {totalVisualizacoes === 1 ? 'visualização' : 'visualizações'} e {totalContatos} {totalContatos === 1 ? 'contato' : 'contatos'} no total.
@@ -192,7 +196,7 @@ function ConteudoNegociacoes({ navigation }: TelaAbaProps<'NegociacoesLista'>) {
 
 export default function NegociacoesScreen(props: TelaAbaProps<'NegociacoesLista'>) {
   return (
-    <AuthGate titulo="Suas negociações em um só lugar" mensagem="Entre para acompanhar seus anúncios, reservas e negociações.">
+    <AuthGate titulo="Gerencie seus anúncios" mensagem="Entre para acompanhar seus anúncios, reservas e status.">
       <ConteudoNegociacoes {...props} />
     </AuthGate>
   );

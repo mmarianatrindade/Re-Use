@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { Image, ScrollView, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
+import { ScrollView, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 import { colors } from '../constants/colors';
 import { fonts } from '../constants/fonts';
 import { tipografia } from '../constants/tipografia';
@@ -17,6 +17,7 @@ import {
   obterLabelSubcategoria,
 } from '../utils/formatarAnuncio';
 import TagsAnuncio from './TagsAnuncio';
+import Foto from './Foto';
 
 export interface DadosPreview {
   fotos: string[];
@@ -86,12 +87,7 @@ export default function AnuncioPreview({ dados, gutter, anunciante, acoes, colar
               accessibilityLabel={`Galeria com ${dados.fotos.length} fotos`}
             >
               {dados.fotos.map((uri, indice) => (
-                <Image
-                  key={`${uri}-${indice}`}
-                  source={{ uri }}
-                  style={{ width: largura, height: Math.min(largura, 620) }}
-                  resizeMode="cover"
-                />
+                <Foto key={`${uri}-${indice}`} uri={uri} style={{ width: largura, height: Math.min(largura, 620) }} />
               ))}
             </ScrollView>
             {dados.fotos.length > 1 ? (

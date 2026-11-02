@@ -18,11 +18,18 @@ export class ApiError extends Error {
   }
 }
 
+// Tempo máximo de espera por resposta (uploads de foto têm mais folga) e tentativa extra só para leituras (GET).
+const TEMPO_LIMITE_MS = 15_000;
+const TEMPO_LIMITE_UPLOAD_MS = 60_000;
+const ESPERA_ENTRE_TENTATIVAS_MS = 600;
+// Falhas passageiras do servidor/borda (Cloudflare) que valem uma nova tentativa.
+const STATUS_TRANSITORIOS = new Set([502, 503, 504]);
+
 let obterToken: () => string | null = () => null;
-let aoExpirarSessao: () => void = () => undefined;
+let aoExpirarSessao: (token: string) => void = () => undefined;
 
 // O contexto de sessão registra aqui como ler o token e o que fazer quando ele expira.
-export function configurarSessaoApi(opcoes: { obterToken: () => string | null; aoExpirarSessao: () => void }) {
+export function configurarSessaoApi(opcoes: { obterToken: () => string | null; aoExpirarSessao: (token: string) => void }) {
   obterToken = opcoes.obterToken;
   aoExpirarSessao = opcoes.aoExpirarSessao;
 }
@@ -51,25 +58,72 @@ export async function requisitar<T>(caminho: string, opcoes: OpcoesRequisicao = 
     body = JSON.stringify(opcoes.corpo);
   }
 
-  let resposta: Response;
-  try {
-    resposta = await fetch(`${API_URL}${caminho}`, { method: opcoes.metodo ?? 'GET', headers, body });
-  } catch {
-    throw new ApiError(0, 'SEM_CONEXAO', 'Não foi possível falar com o servidor. Verifique sua conexão.');
+  const metodo = opcoes.metodo ?? 'GET';
+  const limiteMs = opcoes.arquivo ? TEMPO_LIMITE_UPLOAD_MS : TEMPO_LIMITE_MS;
+  // Só leituras repetem: repetir POST/PUT/DELETE poderia duplicar uma ação.
+  const tentativas = metodo === 'GET' ? 2 : 1;
+
+  let resposta: { ok: boolean; status: number; texto: string } | null = null;
+  let esgotouTempo = false;
+
+  for (let tentativa = 1; tentativa <= tentativas; tentativa++) {
+    const controlador = new AbortController();
+    const temporizador = setTimeout(() => controlador.abort(), limiteMs);
+    try {
+      const retorno = await fetch(`${API_URL}${caminho}`, { method: metodo, headers, body, signal: controlador.signal });
+      // O corpo também conta no limite: o timer só é desligado depois de ler o texto.
+      resposta = { ok: retorno.ok, status: retorno.status, texto: await retorno.text() };
+      esgotouTempo = false;
+      if (!STATUS_TRANSITORIOS.has(resposta.status) || tentativa === tentativas) {
+        break;
+      }
+    } catch {
+      resposta = null;
+      esgotouTempo = controlador.signal.aborted;
+      if (tentativa === tentativas) {
+        break;
+      }
+    } finally {
+      clearTimeout(temporizador);
+    }
+    await new Promise((resolver) => setTimeout(resolver, ESPERA_ENTRE_TENTATIVAS_MS));
   }
 
-  const texto = await resposta.text();
-  const json: unknown = texto ? JSON.parse(texto) : null;
+  if (!resposta) {
+    throw esgotouTempo
+      ? new ApiError(0, 'TEMPO_ESGOTADO', 'O servidor demorou demais para responder. Tente novamente.')
+      : new ApiError(0, 'SEM_CONEXAO', 'Não foi possível falar com o servidor. Verifique sua conexão.');
+  }
+
+  const json = lerJson(resposta.texto);
 
   if (!resposta.ok) {
     const erro = (json ?? {}) as Partial<ErroResposta>;
-    if (resposta.status === 401 && token) {
-      aoExpirarSessao();
+    if (resposta.status === 401 && token && token === obterToken()) {
+      aoExpirarSessao(token);
     }
-    throw new ApiError(resposta.status, erro.codigo ?? 'ERRO', erro.erro ?? 'Algo deu errado. Tente novamente.', erro.campos);
+    const padrao = resposta.status >= 500 ? 'O servidor está instável no momento. Tente novamente em instantes.' : 'Algo deu errado. Tente novamente.';
+    throw new ApiError(resposta.status, erro.codigo ?? 'ERRO', erro.erro ?? padrao, erro.campos);
+  }
+
+  // Resposta de sucesso que não é JSON (ex.: página de erro de um proxy): trata como falha em vez de quebrar a tela.
+  if (resposta.texto && json === null) {
+    throw new ApiError(resposta.status, 'RESPOSTA_INVALIDA', 'O servidor respondeu algo inesperado. Tente novamente.');
   }
 
   return json as T;
+}
+
+// JSON.parse que não derruba o app quando o servidor devolve HTML ou texto solto.
+function lerJson(texto: string): unknown {
+  if (!texto) {
+    return null;
+  }
+  try {
+    return JSON.parse(texto);
+  } catch {
+    return null;
+  }
 }
 
 export function obterMensagemErro(erro: unknown) {

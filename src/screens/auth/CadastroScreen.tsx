@@ -19,6 +19,7 @@ import { ApiError, obterMensagemErro } from '../../services/api';
 import { enviarImagem } from '../../services/midiaService';
 import { atualizarFotoPerfil } from '../../services/perfilService';
 import { confirmarAcao } from '../../utils/confirmarAcao';
+import { showMessage } from '../../utils/showMessage';
 import EtapaConta from './cadastro/EtapaConta';
 import EtapaDadosPessoais from './cadastro/EtapaDadosPessoais';
 import EtapaRevisao from './cadastro/EtapaRevisao';
@@ -105,7 +106,7 @@ export default function CadastroScreen({ navigation }: RootScreenProps<'Cadastro
       const upload = await enviarImagem(dados.fotoUri, 'perfil');
       atualizarUsuario(await atualizarFotoPerfil(upload.chave));
     } catch {
-      // Sem a foto a conta continua válida; o perfil pede para completar antes de publicar.
+      showMessage('Conta criada; foto pendente', 'Não foi possível enviar sua foto. No perfil, toque em Editar perfil para tentar novamente antes de publicar.');
     }
 
     // Com a confirmação de e-mail desligada na API, a conta já pode publicar: vai direto para o perfil.

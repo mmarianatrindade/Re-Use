@@ -256,17 +256,24 @@ export default function HomeScreen() {
               />
             </View>
           ) : (
-            modalities.map((modalidade) => (
-              <CarrosselModalidade
-                key={modalidade.id}
-                modalidade={modalidade}
-                titulo={modalidade.label}
-                anuncios={anunciosHome.porModalidade[modalidade.id]}
-                gutter={gutter}
-                onAnuncioPress={handleAnuncio}
-                onVerMais={() => abrirAnuncios(modalidade.id)}
-              />
-            ))
+            <>
+              {anunciosHome.emCache ? (
+                <Text style={[tipografia.apoio, styles.avisoCache]}>
+                  Não foi possível atualizar agora: mostrando os últimos anúncios carregados neste aparelho.
+                </Text>
+              ) : null}
+              {modalities.map((modalidade) => (
+                <CarrosselModalidade
+                  key={modalidade.id}
+                  modalidade={modalidade}
+                  titulo={modalidade.label}
+                  anuncios={anunciosHome.porModalidade[modalidade.id]}
+                  gutter={gutter}
+                  onAnuncioPress={handleAnuncio}
+                  onVerMais={() => abrirAnuncios(modalidade.id)}
+                />
+              ))}
+            </>
           )}
         </View>
 
@@ -436,6 +443,7 @@ const styles = StyleSheet.create({
 
   erro: { paddingVertical: 12 },
   erroTexto: { marginTop: 4 },
+  avisoCache: { marginBottom: 12 },
   botaoInline: { alignSelf: "flex-start", marginTop: 14 },
 
   impacto: { backgroundColor: colors.primary, paddingVertical: 48 },

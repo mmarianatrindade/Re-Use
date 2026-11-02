@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
   },
   caixaMultilinha: { alignItems: 'flex-start', paddingVertical: 12 },
   caixaFocada: { borderColor: colors.teal },
-  caixaErro: { borderColor: colors.danger, backgroundColor: '#FFFBFA' },
+  caixaErro: { borderColor: colors.danger, backgroundColor: colors.dangerFaint },
   prefixo: { fontFamily: fonts.bodySemiBold, fontSize: 16, color: colors.textMuted, marginRight: 6 },
   input: {
     flex: 1,

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import Banner from '../../components/Banner';
 import EmptyState from '../../components/EmptyState';
+import EsqueletoCards from '../../components/EsqueletoCards';
 import FiltrosModal from '../../components/FiltrosModal';
 import SegmentedControl, { type SegmentOption } from '../../components/SegmentedControl';
 import TextField from '../../components/TextField';
@@ -16,7 +17,7 @@ import { useResponsive } from '../../hooks/useResponsive';
 import type { TelaAbaProps } from '../../navigation/tipos';
 import type { Modalidade } from '../../schemas/anuncio';
 import { obterMensagemErro } from '../../services/api';
-import { listarVitrine } from '../../services/anunciosService';
+import { lerVitrineEmCache, listarVitrine } from '../../services/anunciosService';
 import { obterLocalizacaoAtual, type LocalizacaoAtual } from '../../services/localizacaoService';
 import type { AnuncioVitrine } from '../../types/api';
 import { FILTROS_VAZIOS, contarFiltrosAtivos, type FiltrosAnuncios } from '../../types/filtros';
@@ -81,8 +82,10 @@ export default function AnunciosScreen({ navigation, route }: TelaAbaProps<'Anun
     return () => clearTimeout(temporizador);
   }, [texto]);
 
+  // lerDoCache: ao abrir ou mudar filtros, mostra a última 1ª página salva com esses filtros enquanto a API responde
+  // (e mantém na tela se a API falhar). Atualizar puxando a lista ou "Tentar de novo" vão direto à API.
   const carregarPagina = useCallback(
-    async (pagina: number) => {
+    async (pagina: number, lerDoCache = false) => {
       const numero = ++requisicaoAtual.current;
       try {
         // Cidade/UF do perfil têm prioridade para "minha cidade/estado"; o GPS cobre quem não tem endereço.
@@ -92,10 +95,17 @@ export default function AnunciosScreen({ navigation, route }: TelaAbaProps<'Anun
           cidade: usuario?.endereco?.cidade ?? gps?.cidade ?? null,
           uf: usuario?.endereco?.uf ?? gps?.uf ?? null,
         };
-        const resposta = await listarVitrine(
-          { modalidade: modalidade === 'todas' ? undefined : modalidade, busca, avancados: filtros, local },
-          pagina,
-        );
+        const filtrosVitrine = { modalidade: modalidade === 'todas' ? undefined : modalidade, busca, avancados: filtros, local };
+
+        if (pagina === 0 && lerDoCache) {
+          const salvo = await lerVitrineEmCache(filtrosVitrine);
+          if (salvo && numero === requisicaoAtual.current) {
+            // Sem definir a próxima página: a paginação só liga com a resposta atualizada da API.
+            setItens((atuais) => atuais ?? salvo.dados.itens);
+          }
+        }
+
+        const resposta = await listarVitrine(filtrosVitrine, pagina);
         if (numero !== requisicaoAtual.current) {
           return;
         }
@@ -113,7 +123,9 @@ export default function AnunciosScreen({ navigation, route }: TelaAbaProps<'Anun
 
   useEffect(() => {
     setItens(null);
-    void carregarPagina(0);
+    setProximaPagina(null);
+    setErro(null);
+    void carregarPagina(0, true);
   }, [carregarPagina]);
 
   const handleAtualizar = async () => {
@@ -123,7 +135,7 @@ export default function AnunciosScreen({ navigation, route }: TelaAbaProps<'Anun
   };
 
   const handleCarregarMais = async () => {
-    if (proximaPagina === null || carregandoMais) {
+    if (itens === null || proximaPagina === null || carregandoMais || atualizando) {
       return;
     }
     setCarregandoMais(true);
@@ -213,7 +225,7 @@ export default function AnunciosScreen({ navigation, route }: TelaAbaProps<'Anun
           <Text style={styles.limpar}>Limpar filtros</Text>
         </Pressable>
       ) : null}
-      {erro && itens ? <Banner tom="erro">{erro}</Banner> : null}
+      {erro && itens ? <Banner tom="aviso">{`${erro} Mostrando os últimos anúncios carregados neste aparelho.`}</Banner> : null}
       <FiltrosModal
         visivel={modalFiltros}
         filtros={filtros}
@@ -235,6 +247,9 @@ export default function AnunciosScreen({ navigation, route }: TelaAbaProps<'Anun
       columnWrapperStyle={colunas > 1 ? styles.linha : undefined}
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"
+      initialNumToRender={8}
+      maxToRenderPerBatch={8}
+      windowSize={7}
       ListHeaderComponent={cabecalho}
       renderItem={({ item }) => (
         <CardAnuncio anuncio={cardDeVitrine(item)} largura={larguraCard} onPress={() => navigation.navigate('AnuncioDetalhe', { anuncioId: item.id })} />
@@ -244,7 +259,7 @@ export default function AnunciosScreen({ navigation, route }: TelaAbaProps<'Anun
           erro ? (
             <EmptyState icone="!" titulo="Não foi possível carregar" mensagem={erro} acao={{ label: 'Tentar de novo', onPress: () => void carregarPagina(0) }} />
           ) : (
-            <EmptyState titulo="Carregando anúncios" carregando />
+            <EsqueletoCards largura={larguraCard} colunas={colunas} espaco={ESPACO} />
           )
         ) : (
           <EmptyState

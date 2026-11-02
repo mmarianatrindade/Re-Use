@@ -1,6 +1,7 @@
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { colors } from '../constants/colors';
 import { fonts } from '../constants/fonts';
+import Foto from './Foto';
 
 interface AvatarProps {
   nome: string;
@@ -17,7 +18,7 @@ export default function Avatar({ nome, uri, tamanho = 72 }: AvatarProps) {
   const estiloTamanho = { width: tamanho, height: tamanho, borderRadius: tamanho / 2 };
 
   if (uri) {
-    return <Image source={{ uri }} style={[styles.imagem, estiloTamanho]} accessibilityLabel={`Foto de ${nome}`} />;
+    return <Foto uri={uri} style={[styles.imagem, estiloTamanho]} accessibilityLabel={`Foto de ${nome}`} />;
   }
 
   return (

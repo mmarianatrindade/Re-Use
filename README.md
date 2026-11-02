@@ -10,6 +10,26 @@
 
 O mesmo código roda no celular (Expo Go ou build nativo) e no navegador (React Native Web).
 
+## Entrega da Fase 3
+
+- [Documento da entrega em PDF](docs/ReUse_Fase3_Entrega.pdf).
+- [Texto da documentação](docs/Fase3_Entrega.md), organizado nos três critérios: APIs, autenticação/sessões e caching local.
+- Integrantes: Emanuel Secco Eidt (RM567455), Laura Franco Pigosso (RM562157), Mariana Rodrigues Trindade da Silva (RM567137) e Marcos Nunes (RM567631).
+
+Validação local com Node.js 24: `npm run typecheck`, `npm test` e `npm run export:web`. Os testes usam rede e armazenamento simulados, funções de React simuladas e SQLite em memória; não substituem a execução em aparelhos Android/iOS.
+
+Para a demonstração local, execute `npm ci`, `npm run demo:configurar` e `npm run api:migrar:local`. Depois, abra `npm run api:dev` e `npm start` em terminais separados. O comando de configuração preserva arquivos existentes e gera apenas uma chave de desenvolvimento. Em celular físico, ajuste a URL da API no `.env` para o IP do computador na mesma rede.
+
+As migrações devem incluir `0005_limites.sql`. Atualizar o código no GitHub não aplica migrações nem publica a API ou o site na Cloudflare.
+
+O envio real de e-mail está desabilitado na configuração incluída. O modo de desenvolvimento fornece `linkDev`; em produção sem provedor, a recuperação responde com indisponibilidade. O token usa SecureStore no mobile e AsyncStorage na web, com proteções diferentes. Propostas, conversas e pagamentos permanecem no escopo futuro.
+
+### Cache e resiliência
+
+O módulo `src/services/cache.ts` limita a 40 respostas, com chaves v2 e validade de 6 horas para listas, 24 horas para detalhes/estatísticas e 30 dias para CEP. Home, catálogo e detalhe podem exibir a cópia válida enquanto atualizam pela rede. Fotos usam `expo-image`; NetInfo informa falta de conexão.
+
+Meus anúncios e rascunhos são separados por conta. Logout e expiração invalidam operações antigas e removem esses dados e o cache de respostas; favoritos públicos e o último e-mail permanecem. O cliente da API usa timeout de 15 segundos por tentativa (60 segundos em upload), repete GET uma vez em falhas transitórias e preserva erros de validação por campo. Consultas de CEP têm prazo de 5 segundos.
+
 ---
 
 ## Sumário
@@ -38,7 +58,7 @@ Objetos úteis (móveis, roupas, livros, eletrônicos) ficam parados em casa ou 
 - **Troca**: o que está parado com você pode ser exatamente o que outra pessoa procura.
 - **Doação**: para pessoas ou organizações próximas, sem custo para quem recebe.
 
-Projeto acadêmico (FIAP), desenvolvido em sprints: a Sprint 1 criou a primeira impressão da plataforma, e a Sprint 2 trouxe conta, perfil, publicação e gestão de anúncios com dados reais.
+Projeto acadêmico (FIAP), desenvolvido em sprints: a Sprint 1 criou a primeira impressão da plataforma, a Sprint 2 trouxe conta, perfil, publicação e gestão de anúncios com dados reais, e a Fase 3 acrescenta resiliência das APIs, renovação da sessão e cache local de respostas.
 
 ## Funcionalidades
 
@@ -73,7 +93,7 @@ Projeto acadêmico (FIAP), desenvolvido em sprints: a Sprint 1 criou a primeira 
 ### Conta
 
 - **Cadastro em 5 etapas**: acesso (nome, e-mail e senha), dados de segurança (CPF, celular e data de nascimento, com validação de maioridade), endereço com preenchimento pelo CEP e sugestões de endereço, **selfie com a câmera frontal** e revisão com aceite dos termos.
-- **Login e sessão**: token opaco com validade de 7 dias, renovado automaticamente perto do vencimento e guardado no SecureStore. Bloqueio temporário após 5 senhas erradas, recuperação de senha por link (30 min) e "Sair", que revoga a sessão na API.
+- **Login e sessão**: token opaco com validade de 7 dias, renovado perto do vencimento e guardado no SecureStore no Android/iOS ou AsyncStorage na web. Bloqueio temporário após 5 senhas erradas e recuperação por link de 30 minutos quando o envio está configurado (link de desenvolvimento no ambiente local). Ao sair, o app encerra o estado local imediatamente e tenta revogar a sessão na API, conforme a conexão.
 - **Perfil**: foto, nome público, descrição, localização pública (CEP, bairro e cidade, **nunca o número da casa**), reputação, selos, impacto e tipo de conta. CPF mascarado, telefone e endereço completo aparecem só para a própria pessoa.
 
 ### Anúncios
@@ -91,7 +111,7 @@ Projeto acadêmico (FIAP), desenvolvido em sprints: a Sprint 1 criou a primeira 
 | `expo-image-manipulator` | Redimensiona as fotos (lado maior 1600 px) antes do envio |
 | Localização (`expo-location`) | Filtro por distância e ordenação "mais perto" |
 | SecureStore (`expo-secure-store`) | Token de sessão (Keychain no iOS, Keystore no Android) |
-| AsyncStorage | Rascunho do anúncio, cache de "Meus anúncios", salvos e último e-mail usado |
+| AsyncStorage | Cache de respostas, rascunho, Meus anúncios, salvos e último e-mail; na web, também a sessão |
 | Deep links (`expo-linking`) | Ativação de conta e redefinição de senha |
 | Compartilhar (`Share`) | Compartilhar anúncio (na web, copia o link) |
 
@@ -196,7 +216,7 @@ Rotas autenticadas usam `Authorization: Bearer <token>`.
 ### 1. Instalar
 
 ```bash
-npm install
+npm ci
 ```
 
 ### 2. Configurar

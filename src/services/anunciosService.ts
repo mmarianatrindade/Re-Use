@@ -4,6 +4,8 @@ import type { FiltrosAnuncios } from '../types/filtros';
 import type { AnuncioProprio, AnuncioPublico, MensagemResposta, PaginaVitrine } from '../types/api';
 import { requisitar } from './api';
 import { chavesLocais, lerLocal, salvarLocal } from './armazenamento';
+import { lerCache, removerCache, salvarCache, TTL_CACHE } from './cache';
+import { capturarContaLocal } from './contaLocal';
 
 // Converte o formulário no corpo da API; as fotos já precisam ter sido enviadas (chave preenchida).
 export function montarDadosAnuncio(form: AnuncioFormDados, chavesImagens: string[]): AnuncioApiDados {
@@ -30,8 +32,9 @@ export function montarDadosAnuncio(form: AnuncioFormDados, chavesImagens: string
 }
 
 export async function listarMeusAnuncios() {
+  const conta = capturarContaLocal();
   const anuncios = await requisitar<AnuncioProprio[]>('/meus-anuncios');
-  await salvarLocal(chavesLocais.meusAnuncios, anuncios);
+  await salvarLocal(chavesLocais.meusAnuncios, anuncios, conta);
   return anuncios;
 }
 
@@ -139,13 +142,42 @@ function montarParametrosVitrine({ modalidade, categoria, busca, avancados: f, l
     .join('&');
 }
 
-export function listarVitrine(filtros: FiltrosVitrine, pagina: number) {
-  const consulta = montarParametrosVitrine(filtros);
-  return requisitar<PaginaVitrine>(`/anuncios?pagina=${pagina}${consulta ? `&${consulta}` : ''}`);
+// Chave do cache da 1ª página: a posição do GPS é arredondada (~1 km) para não guardar a localização exata.
+function chaveCacheVitrine(filtros: FiltrosVitrine, conta = capturarContaLocal()) {
+  return `${conta.usuarioId ?? 'publico'}/vitrine/${montarParametrosVitrine(filtros).replace(/(lat|lng)=(-?\d+\.\d{2})\d*/g, '$1=$2')}`;
 }
 
-export function buscarAnuncioPublico(id: string) {
-  return requisitar<AnuncioPublico>(`/anuncios/${encodeURIComponent(id)}`);
+// Só a 1ª página vai para o cache: é a que abre a Home e o catálogo.
+export async function listarVitrine(filtros: FiltrosVitrine, pagina: number) {
+  const conta = capturarContaLocal();
+  const consulta = montarParametrosVitrine(filtros);
+  const resposta = await requisitar<PaginaVitrine>(`/anuncios?pagina=${pagina}${consulta ? `&${consulta}` : ''}`);
+  if (pagina === 0) {
+    void salvarCache(chaveCacheVitrine(filtros, conta), resposta, conta);
+  }
+  return resposta;
+}
+
+// Última 1ª página recebida com esses mesmos filtros (null se não houver ou se estiver velha demais).
+export function lerVitrineEmCache(filtros: FiltrosVitrine) {
+  return lerCache<PaginaVitrine>(chaveCacheVitrine(filtros), TTL_CACHE.listagens);
+}
+
+export async function buscarAnuncioPublico(id: string) {
+  const conta = capturarContaLocal();
+  const anuncio = await requisitar<AnuncioPublico>(`/anuncios/${encodeURIComponent(id)}`);
+  void salvarCache(`${conta.usuarioId ?? 'publico'}/anuncio/${id}`, anuncio, conta);
+  return anuncio;
+}
+
+// Anúncio já aberto antes: a tela de detalhe abre na hora, mesmo sem conexão.
+export function lerAnuncioPublicoEmCache(id: string) {
+  return lerCache<AnuncioPublico>(`${capturarContaLocal().usuarioId ?? 'publico'}/anuncio/${id}`, TTL_CACHE.detalhe);
+}
+
+// Anúncio que a API diz não existir mais: sai do cache.
+export function descartarAnuncioEmCache(id: string) {
+  return removerCache(`${capturarContaLocal().usuarioId ?? 'publico'}/anuncio/${id}`);
 }
 
 // Conta a visualização no desempenho do anúncio (a API ignora quando quem vê é o dono).

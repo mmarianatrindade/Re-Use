@@ -49,18 +49,44 @@ export async function enviarArquivo(request: Request, env: Env, origem: string) 
     throw new ErroApi(413, 'ARQUIVO_GRANDE', MENSAGEM_TAMANHO);
   }
 
-  const bytes = await request.arrayBuffer();
+  const partes: Uint8Array[] = [];
+  const leitor = request.body?.getReader();
+  let tamanho = 0;
+  if (leitor) {
+    try {
+      while (true) {
+        const parte = await leitor.read();
+        if (parte.done) break;
+        tamanho += parte.value.byteLength;
+        if (tamanho > TAMANHO_MAXIMO) {
+          await leitor.cancel();
+          throw new ErroApi(413, 'ARQUIVO_GRANDE', MENSAGEM_TAMANHO);
+        }
+        partes.push(parte.value);
+      }
+    } finally {
+      leitor.releaseLock();
+    }
+  }
+  const conteudo = new Uint8Array(tamanho);
+  let deslocamento = 0;
+  for (const parte of partes) { conteudo.set(parte, deslocamento); deslocamento += parte.byteLength; }
+  const bytes = conteudo.buffer;
   if (bytes.byteLength === 0) {
     throw new ErroApi(400, 'ARQUIVO_VAZIO', 'Imagem vazia.');
   }
   if (bytes.byteLength > TAMANHO_MAXIMO) {
     throw new ErroApi(413, 'ARQUIVO_GRANDE', MENSAGEM_TAMANHO);
   }
+  if (!imagemValida(conteudo, contentType)) throw new ErroApi(415, 'FORMATO_INVALIDO', 'O arquivo não contém uma imagem JPG, PNG ou WebP válida.');
 
   const chave = `${prefixoDoUsuario(sessao.userId, tipo)}${gerarId()}.${extensao}`;
-  await env.DB.prepare('INSERT INTO arquivos (chave, user_id, content_type, tamanho, dados, criado_em) VALUES (?, ?, ?, ?, ?, ?)')
-    .bind(chave, sessao.userId, contentType, bytes.byteLength, bytes, agoraIso())
+  const resultado = await env.DB.prepare(`INSERT INTO arquivos (chave, user_id, content_type, tamanho, dados, criado_em)
+    SELECT ?, ?, ?, ?, ?, ? WHERE (SELECT COUNT(*) FROM arquivos WHERE user_id = ?) < 100
+    AND (SELECT COALESCE(SUM(tamanho), 0) FROM arquivos WHERE user_id = ?) + ? <= 52428800`)
+    .bind(chave, sessao.userId, contentType, bytes.byteLength, bytes, agoraIso(), sessao.userId, sessao.userId, bytes.byteLength)
     .run();
+  if (resultado.meta.changes !== 1) throw new ErroApi(429, 'COTA_ARQUIVOS', 'O limite de imagens desta conta foi atingido. Remova imagens sem uso antes de enviar outras.');
 
   const resposta: UploadResposta = { chave, url: montarUrlArquivo(origem, chave) ?? '' };
   return responderJson(resposta, 201);
@@ -81,6 +107,7 @@ export async function lerArquivo(env: Env, chave: string) {
   // As chaves são únicas (UUID): o conteúdo de uma URL nunca muda.
   headers.set('Cache-Control', 'public, max-age=31536000, immutable');
   headers.set('Access-Control-Allow-Origin', '*');
+  headers.set('X-Content-Type-Options', 'nosniff');
   return new Response(bytes, { headers });
 }
 
@@ -90,4 +117,10 @@ export async function removerArquivos(env: Env, chaves: string[]) {
       .bind(...chaves)
       .run();
   }
+}
+
+function imagemValida(bytes: Uint8Array, tipo: string) {
+  if (tipo === 'image/jpeg') return bytes.length > 4 && bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255 && bytes[bytes.length - 2] === 255 && bytes[bytes.length - 1] === 217;
+  if (tipo === 'image/png') return bytes.length >= 33 && [137, 80, 78, 71, 13, 10, 26, 10].every((valor, indice) => bytes[indice] === valor) && String.fromCharCode(...bytes.slice(12, 16)) === 'IHDR';
+  return tipo === 'image/webp' && bytes.length >= 20 && String.fromCharCode(...bytes.slice(0, 4)) === 'RIFF' && String.fromCharCode(...bytes.slice(8, 12)) === 'WEBP' && ['VP8 ', 'VP8L', 'VP8X'].includes(String.fromCharCode(...bytes.slice(12, 16)));
 }

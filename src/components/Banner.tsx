@@ -16,9 +16,9 @@ interface BannerProps {
 
 const tons: Record<Tom, { fundo: string; borda: string; texto: string }> = {
   info: { fundo: colors.surfaceAlt, borda: colors.border, texto: colors.primaryDark },
-  aviso: { fundo: colors.warningSoft, borda: '#F3DDA8', texto: colors.warning },
-  erro: { fundo: colors.dangerSoft, borda: '#F3C7C2', texto: colors.danger },
-  sucesso: { fundo: colors.successSoft, borda: '#BFE3BC', texto: colors.success },
+  aviso: { fundo: colors.warningSoft, borda: colors.warningBorder, texto: colors.warning },
+  erro: { fundo: colors.dangerSoft, borda: colors.dangerBorder, texto: colors.danger },
+  sucesso: { fundo: colors.successSoft, borda: colors.successBorder, texto: colors.success },
 };
 
 export default function Banner({ tom = 'info', titulo, children, acao, style }: BannerProps) {
