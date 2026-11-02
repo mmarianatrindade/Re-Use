@@ -141,4 +141,3 @@ Propostas, chat, pagamentos e avaliações completas pertencem a etapas futuras.
 
 A API limita a frequência de operações como login, cadastro, consultas de endereço e uploads. O envio de imagens confere o tipo e a assinatura do arquivo, limita o corpo a 1,5 MB e estabelece cota de até 100 arquivos e 50 MB por conta; essa validação não equivale a uma análise antivírus ou decodificação completa da imagem.
 
-Revisão da entrega: 2 de novembro de 2026.
