@@ -276,9 +276,11 @@ npm run api:migrar                                      # migrações no D1 remo
 npm run api:deploy                                      # publica o Worker
 
 # Site
-npx expo export -p web --clear                          # gera dist/ com o .env atual
+npm run export:web:producao                             # gera e valida dist/ com a API online
 npx wrangler pages deploy dist --project-name reuse-fiapweb2 --branch master
 ```
+
+O comando `npm run deploy` também prepara e valida a versão de produção antes de enviar ao mesmo projeto Pages. A preparação seleciona `https://reuse-api.r3vmarcos.workers.dev`, ignora o `.env` local e limpa o cache de compilação para impedir o reaproveitamento de uma URL de desenvolvimento. A API e as migrações continuam sendo publicadas separadamente pelos comandos acima.
 
 Variáveis do Worker (em `api/wrangler.jsonc`): `APP_URL`, `ORIGENS_PERMITIDAS` (CORS), `EXIGIR_CONFIRMACAO_EMAIL` e `EMAIL_REMETENTE`. A confirmação de e-mail está desligada nesta versão de teste, porque ainda não há domínio para envio; para ligar, habilite o Email Sending do Cloudflare no domínio, descomente `send_email`, preencha `EMAIL_REMETENTE` e mude `EXIGIR_CONFIRMACAO_EMAIL` para `"true"`.
 
