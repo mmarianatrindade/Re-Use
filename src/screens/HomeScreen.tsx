@@ -367,6 +367,12 @@ export default function HomeScreen() {
           </>
         ) : null}
 
+        <View style={[container, styles.descarte]}>
+          <Text style={tipografia.tituloSecao}>Não dá mais para reutilizar?</Text>
+          <Text style={tipografia.corpoSuave}>Encontre ecopontos na cidade de São Paulo, confira os materiais recebidos e veja os locais no mapa.</Text>
+          <PrimaryButton label="Encontrar locais de descarte" variante="secundario" onPress={() => navigation.navigate("Descarte")} />
+        </View>
+
         {/* Rodapé */}
         <View style={styles.rodape}>
           <View style={container}>
@@ -393,6 +399,7 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
+  descarte: { paddingVertical: 40, gap: 16, alignItems: "flex-start" },
   container: { width: "100%", maxWidth: MAX_CONTENT_WIDTH, alignSelf: "center" },
   grid: { flexDirection: "row", flexWrap: "wrap" },
   pressionado: { opacity: 0.85 },

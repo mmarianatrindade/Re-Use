@@ -13,6 +13,7 @@ export type TelasCompartilhadasParamList = {
   EditarAnuncio: { anuncioId: string };
   DestacarAnuncio: { anuncioId: string };
   Salvos: undefined;
+  Descarte: undefined;
 };
 
 // Transforma a interseção num objeto simples: o React Navigation não infere os deep links a partir de "A & B".

@@ -16,6 +16,7 @@ import {
 import { enviarArquivo, lerArquivo } from './rotas/arquivos';
 import { listarSugestoesEndereco, obterEnderecoSugerido } from './rotas/enderecos';
 import { obterEstatisticas } from './rotas/estatisticas';
+import { listarEcopontos } from './rotas/ecopontos';
 import { listarVitrine, obterAnuncioPublico } from './rotas/vitrine';
 import {
   ativarConta,
@@ -62,6 +63,7 @@ function casarRota(rota: Rota, metodo: string, segmentos: string[]): Parametros 
 const rotas: Rota[] = [
   definirRota('GET', '/saude', async () => responderJson({ ok: true })),
   definirRota('GET', '/estatisticas', (_, env) => obterEstatisticas(env)),
+  definirRota('GET', '/ecopontos', () => listarEcopontos()),
 
   definirRota('POST', '/auth/cadastro', (request, env, _, origem) => cadastrar(request, env, origem)),
   definirRota('POST', '/auth/login', (request, env, _, origem) => entrar(request, env, origem)),

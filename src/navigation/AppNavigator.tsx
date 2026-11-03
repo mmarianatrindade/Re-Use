@@ -26,6 +26,7 @@ import RecuperarSenhaScreen from '../screens/auth/RecuperarSenhaScreen';
 import RedefinirSenhaScreen from '../screens/auth/RedefinirSenhaScreen';
 import TermosScreen from '../screens/auth/TermosScreen';
 import HomeScreen from '../screens/HomeScreen';
+import DescarteScreen from '../screens/DescarteScreen';
 import EditarPerfilScreen from '../screens/perfil/EditarPerfilScreen';
 import MeuPerfilScreen from '../screens/perfil/MeuPerfilScreen';
 import PerfilPublicoScreen from '../screens/perfil/PerfilPublicoScreen';
@@ -90,6 +91,7 @@ function renderizarTelasCompartilhadas() {
       <Pilha.Screen name="EditarAnuncio" component={EditarAnuncioScreen} options={{ title: 'Editar anúncio' }} />
       <Pilha.Screen name="DestacarAnuncio" component={DestacarAnuncioScreen} options={{ title: 'Destacar anúncio' }} />
       <Pilha.Screen name="Salvos" component={SalvosScreen} options={{ title: 'Salvos' }} />
+      <Pilha.Screen name="Descarte" component={DescarteScreen} options={{ title: 'Descarte consciente' }} />
     </>
   );
 }

@@ -26,7 +26,7 @@ O envio real de e-mail está desabilitado na configuração incluída. O modo de
 
 ### Cache e resiliência
 
-O módulo `src/services/cache.ts` limita a 40 respostas, com chaves v2 e validade de 6 horas para listas, 24 horas para detalhes/estatísticas e 30 dias para CEP. Home, catálogo e detalhe podem exibir a cópia válida enquanto atualizam pela rede. Fotos usam `expo-image`; NetInfo informa falta de conexão.
+O módulo `src/services/cache.ts` limita a 40 respostas, com chaves v2 e validade de 6 horas para listas, 24 horas para detalhes/estatísticas/ecopontos e 30 dias para CEP. Home, catálogo, detalhe e descarte podem exibir a cópia válida enquanto atualizam pela rede. Fotos usam `expo-image`; NetInfo informa falta de conexão.
 
 Meus anúncios e rascunhos são separados por conta. Logout e expiração invalidam operações antigas e removem esses dados e o cache de respostas; favoritos públicos e o último e-mail permanecem. O cliente da API usa timeout de 15 segundos por tentativa (60 segundos em upload), repete GET uma vez em falhas transitórias e preserva erros de validação por campo. Consultas de CEP têm prazo de 5 segundos.
 
@@ -89,6 +89,17 @@ Projeto acadêmico (FIAP), desenvolvido em sprints: a Sprint 1 criou a primeira 
   - **Para troca**: troca por qualquer categoria, categoria aceita (com a mesma busca indexada), complemento em dinheiro, "tenho" e "procuro".
   - **Para doação**: destino (pessoas ou organizações) e condições de retirada/entrega.
 - Detalhe do anúncio com galeria de ponta a ponta, preço na cor da modalidade, anunciante, **Salvar**, **Compartilhar** e **Denunciar**.
+
+### Descarte consciente em São Paulo
+
+- Tela pública `/descarte`, aberta pelo Início ou menu do perfil, com busca por nome, endereço, distrito e subprefeitura.
+- `GET /ecopontos` consulta a camada municipal `geoportal:ecoponto` no [WFS do GeoSampa](https://wfs.geosampa.prefeitura.sp.gov.br/geoserver/geoportal/wfs?service=WFS&version=2.0.0&request=GetFeature&typeNames=geoportal%3Aecoponto&outputFormat=application%2Fjson&srsName=EPSG%3A4326&count=500). A resposta validada inclui endereços, coordenadas, horários e recebimento por unidade; não existe lista fictícia de reserva.
+- Filtros: móveis/volumosos, entulho, poda, recicláveis secos e gesso. O aceite de gesso depende do campo específico da unidade. A base pode ter defasagem; a tela mostra quando foi consultada e links para as fontes.
+- Lista de oito locais por vez; mapa no fim com **todos** os resultados filtrados. Ver no mapa foca o marcador; Como chegar abre o Google Maps com o destino, sem solicitar GPS.
+- Leaflet 1.9.4 na web e em WebView no Android/iOS. CSS/ícones e o script mobile vêm do unpkg. Tiles do OpenStreetMap com atribuição, identificação do app na WebView e cache HTTP padrão; sem prefetch ou download offline. [Política dos tiles](https://operations.osmfoundation.org/policies/tiles/).
+- Cache local da lista por 24 horas, atualização em seguida e aviso se falhar. O servidor compartilha consultas concorrentes, guarda uma resposta por uma hora por instância, espera até 10 segundos pela fonte e limita a rota a 30 requisições/minuto/IP.
+- A [fonte oficial](https://metadados.geosampa.prefeitura.sp.gov.br/geonetwork/intranet/api/records/ab117be9-ad7f-41a2-a3ee-cba5709d04b2) informa os locais. Outros resíduos têm link para [Recicla Sampa](https://www.reciclasampa.com.br/pontos-de-coleta).
+- Para aparecer no endereço hospedado, é necessário publicar tanto a API quanto o app. O push para o GitHub não executa essa publicação.
 
 ### Conta
 

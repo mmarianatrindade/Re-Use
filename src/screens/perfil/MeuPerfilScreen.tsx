@@ -94,6 +94,7 @@ function ConteudoMeuPerfil({ navigation }: TelaAbaProps<'PerfilInicio'>) {
 
   const itensMenu = [
     { rotulo: 'Salvos', destino: () => navigation.navigate('Salvos') },
+    { rotulo: 'Descarte consciente em São Paulo', destino: () => navigation.navigate('Descarte') },
     { rotulo: 'Meus anúncios e negociações', destino: () => navigation.navigate('Negociacoes') },
     { rotulo: 'Termos de Uso e Privacidade', destino: () => navigation.navigate('Termos') },
   ];

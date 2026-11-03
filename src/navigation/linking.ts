@@ -5,7 +5,7 @@ import type { AbasParamList, RootStackParamList } from './tipos';
 // Tipada à parte: dentro de LinkingOptions o TypeScript não infere o segundo nível de navegadores aninhados.
 const configAbas: PathConfig<AbasParamList> = {
   screens: {
-    Inicio: { screens: { HomeInicio: '' } },
+    Inicio: { initialRouteName: 'HomeInicio', screens: { HomeInicio: '', Descarte: 'descarte' } },
     Anuncios: {
       initialRouteName: 'AnunciosLista',
       screens: {

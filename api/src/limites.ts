@@ -7,7 +7,9 @@ export async function limitarRequisicoes(request: Request, env: Env) {
   let grupo: string;
   let maximo: number;
   let janelaMs: number;
-  if (caminho.startsWith('/enderecos/')) {
+  if (caminho === '/ecopontos') {
+    grupo = 'ecopontos'; maximo = 30; janelaMs = 60_000;
+  } else if (caminho.startsWith('/enderecos/')) {
     grupo = 'enderecos'; maximo = 60; janelaMs = 60_000;
   } else if (caminho === '/auth/cadastro') {
     grupo = 'cadastro'; maximo = 5; janelaMs = 60 * 60_000;

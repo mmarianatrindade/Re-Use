@@ -19,6 +19,7 @@ export const TTL_CACHE = {
   listagens: 6 * 60 * 60_000, // Home e catálogo: 6 horas
   detalhe: 24 * 60 * 60_000, // anúncio aberto: 24 horas
   estatisticas: 24 * 60 * 60_000, // números de impacto: 24 horas
+  ecopontos: 24 * 60 * 60_000, // lista municipal de locais de descarte: 24 horas
   cep: 30 * 24 * 60 * 60_000, // endereço de um CEP quase nunca muda: 30 dias
 } as const;
 

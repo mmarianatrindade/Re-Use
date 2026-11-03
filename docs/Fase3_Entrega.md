@@ -25,6 +25,8 @@ Stack: Expo SDK 53, React Native 0.79, React 19, TypeScript, React Navigation 7 
 | AwesomeAPI CEP - pública | Consulta coordenadas aproximadas do CEP para apoiar os filtros por localização. |
 | Google Places - opcional | Sugestões e detalhes de endereço, via proxy na API ReUse. Depende da chave configurada no servidor. |
 | Nominatim e BrasilAPI | Fontes de reserva usadas pela API ReUse na geocodificação do CEP, conforme a disponibilidade dos serviços. |
+| GeoSampa - WFS/GeoJSON | Ecopontos de São Paulo: nomes, endereços, coordenadas, horários e materiais, consumidos pela API ReUse em GET /ecopontos. |
+| OpenStreetMap e Leaflet | Mapa interativo no fim da tela Descarte consciente, com os marcadores dos locais encontrados. |
 
 Base configurada para a API ReUse: https://reuse-api.r3vmarcos.workers.dev. A variável EXPO_PUBLIC_API_URL permite selecionar essa API ou uma instância local. O comportamento documentado corresponde ao código desta entrega; atualizar o GitHub não publica automaticamente alterações no serviço hospedado.
 
@@ -35,6 +37,7 @@ Base configurada para a API ReUse: https://reuse-api.r3vmarcos.workers.dev. A va
 | Tela | Dados e operações |
 | --- | --- |
 | Início | GET /anuncios: carrosséis de venda, troca e doação. GET /estatisticas: indicadores calculados a partir dos registros da plataforma. |
+| Descarte consciente | GET /ecopontos, público: locais de São Paulo, busca por nome/endereço/distrito, filtro de material e mapa ao fim da página. |
 | Catálogo (Anúncios) | GET /anuncios com busca, modalidade, categoria, preço, entrega e localização. Paginação e atualização da lista. |
 | Detalhe do anúncio | GET /anuncios/:id; POST /anuncios/:id/visualizacao; POST /anuncios/:id/denuncia. |
 | Publicar e Editar anúncio | POST /uploads para fotos; POST /anuncios para publicar; PUT /anuncios/:id para editar. |
@@ -52,6 +55,31 @@ No cadastro, ao completar um CEP, o app consulta o ViaCEP e preenche os campos d
 No catálogo, a busca e os filtros compõem os parâmetros de GET /anuncios. A resposta contém os cartões e a indicação da próxima página. O app utiliza esses dados para atualizar a lista e abrir o detalhe de cada item.
 
 As chamadas à API ReUse passam por src/services/api.ts. As operações autenticadas enviam Authorization: Bearer. O cliente trata ausência de conexão, tempo esgotado, JSON inválido, 401 e erros de validação 422 com mensagens por campo. Cada tentativa tem limite de 15 segundos, ou 60 segundos para upload. GET pode repetir uma vez em falhas de rede ou respostas 502, 503 e 504; gravações não são repetidas automaticamente.
+
+---
+
+## 1.4 Descarte consciente em São Paulo
+
+A tela pública pode ser aberta pelo botão Encontrar locais de descarte, no Início, pelo menu do perfil e pelo caminho /descarte. A abrangência inicial é o município de São Paulo, não o estado inteiro. A proposta é priorizar a reutilização e oferecer uma alternativa quando o item já não puder ser vendido, trocado ou doado.
+
+O aplicativo consulta GET /ecopontos na API ReUse. O servidor acessa o serviço WFS 2.0.0 do GeoSampa, camada geoportal:ecoponto, em GeoJSON e coordenadas EPSG:4326. Os campos recebidos são validados antes de exibir a lista e posicionar os marcadores. A data mostrada indica a consulta à fonte, não uma atualização feita pela Prefeitura.
+
+| Recurso | Comportamento implementado |
+| --- | --- |
+| Busca | Nome, endereço, distrito ou subprefeitura, sem diferenciar acentos. |
+| Materiais | Móveis e volumosos, entulho, poda, recicláveis secos e gesso. O filtro usa os campos de recebimento da unidade. Gesso só aparece quando o campo específico informa esse aceite. |
+| Lista | Endereço, distrito, materiais e horário informado; oito locais por vez, com botão para mostrar mais. |
+| Mapa no fim da página | Mostra todos os locais dos filtros atuais, inclusive os ainda não expandidos na lista. Ver no mapa rola a página e abre o marcador correspondente. |
+| Como chegar | Abre o Google Maps com o destino público do ecoponto. O app não solicita GPS nessa tela nem envia uma origem pessoal. |
+| Outros materiais | Link para a consulta do Recicla Sampa. Eletrônicos, pilhas, lâmpadas e medicamentos não são tratados como aceitos por todos os ecopontos. |
+
+O mapa usa Leaflet 1.9.4 e imagens do OpenStreetMap, com atribuição visível. Na web utiliza o navegador; no Android/iOS, uma WebView. Estilos, imagens dos marcadores e, no mobile, o script do Leaflet são carregados do unpkg. O mapa depende de internet; não há download de mapas para uso offline. Os endereços e ações também estão disponíveis em texto.
+
+No servidor, uma resposta válida pode ser reutilizada por uma hora por instância, com consulta concorrente compartilhada, limite de espera de 10 segundos e até 30 requisições por minuto por IP. No aparelho, a lista válida é guardada por 24 horas e pode ser exibida enquanto a rede atualiza. Falhas geram aviso e mantêm uma cópia disponível, sem inventar locais.
+
+Fonte dos locais: https://metadados.geosampa.prefeitura.sp.gov.br/geonetwork/intranet/api/records/ab117be9-ad7f-41a2-a3ee-cba5709d04b2
+
+Regras e endereços municipais: https://prefeitura.sp.gov.br/web/subprefeituras/w/ecoponto-esta%C3%A7%C3%A3o-de-entrega-volunt%C3%A1ria-de-inserv%C3%ADveis
 
 ---
 
@@ -93,6 +121,7 @@ O aplicativo utiliza AsyncStorage para dados de navegação e conteúdo reutiliz
 | Primeira página por combinação de busca e filtros | Catálogo | 6 horas |
 | Detalhe do anúncio consultado | Detalhe do anúncio | 24 horas; removido quando a API responde 404 |
 | Indicadores da plataforma | Início | 24 horas |
+| Ecopontos: endereços, coordenadas, materiais, horários e data da consulta | Descarte consciente | 24 horas; remoção ao limpar o cache, sair ou expirar a conta. O mapa não integra esse cache. |
 | Endereço retornado pelo ViaCEP | Cadastro e Editar perfil | 30 dias |
 | Lista Meus anúncios | Negociações | Até atualização, saída ou expiração da conta |
 | Rascunho com campos, fotos e etapa | Publicar | Salvo após 600 ms sem alterações ou ao avançar; removido ao publicar, descartar, sair ou expirar |
@@ -118,12 +147,16 @@ O repositório inclui package-lock.json para registrar as versões instaladas. A
 | Verificação | Resultado nesta revisão |
 | --- | --- |
 | npm run typecheck | Checagem TypeScript do app e da API aprovada. |
-| npm test | 16 testes de regressão aprovados. |
+| npm test | 24 testes de regressão aprovados. |
 | npm run export:web | Exportação web do aplicativo gerada com sucesso. |
+| API local de ecopontos | GET /ecopontos respondeu 200 com locais reais do GeoSampa e CORS para a origem local. |
+| Conferência visual da nova tela | Não executada nesta revisão. |
 | Testes em aparelhos Android/iOS | Não executados nesta revisão. |
 | Recebimento real de e-mail e publicação em Cloudflare | Não realizados nesta revisão. |
 
 Os testes cobrem tratamento de 401, erros 422, JSON inválido, timeout, repetição de GET, limite e validade do cache, separação de contas, respostas após logout, renovação concorrente, falha de CEP, indisponibilidade do envio de e-mail, limitação de requisições e validação de uploads. São verificações automatizadas de lógica; não equivalem à execução completa dos fluxos em um aparelho.
+
+Os testes de descarte cobrem coordenadas e materiais por unidade, rejeição de geometrias inválidas e coleções incompletas, consulta compartilhada, falha da fonte, busca sem acentos, destino da rota, cache por 24 horas, validação das respostas e proteção contra injeção de HTML no mapa nativo.
 
 ## 4.1 Como executar a demonstração local
 
